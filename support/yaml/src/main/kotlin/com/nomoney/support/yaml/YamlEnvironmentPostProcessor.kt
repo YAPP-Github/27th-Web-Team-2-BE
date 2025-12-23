@@ -1,4 +1,4 @@
-package com.woossu.server.support.yaml
+package com.nomoney.support.yaml
 
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.env.EnvironmentPostProcessor
@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.io.DefaultResourceLoader
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
+import kotlin.collections.get
 import kotlin.streams.asSequence
 
 @Order(Ordered.LOWEST_PRECEDENCE)
