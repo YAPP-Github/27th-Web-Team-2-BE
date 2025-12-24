@@ -10,14 +10,14 @@ spring.config.activate.on-profile: sandbox
 
 spring:
   config:
-    import: 'aws-parameterstore:/woossu/dev/api/'
+    import: 'aws-parameterstore:/nomoney/sandbox/api/'
 
 ---
 spring.config.activate.on-profile: prod
 
 spring:
   config:
-    import: 'aws-parameterstore:/woossu/prod/api/'
+    import: 'aws-parameterstore:/nomoney/prod/api/'
 
 springdoc:
   api-docs:
