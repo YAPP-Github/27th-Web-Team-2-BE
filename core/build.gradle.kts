@@ -14,6 +14,6 @@ dependencies {
 }
 
 tasks {
-    withType<Jar> { enabled = false }
-    withType<BootJar> { enabled = true }
+    withType<Jar> { enabled = true }
+    withType<BootJar> { enabled = false }
 }
