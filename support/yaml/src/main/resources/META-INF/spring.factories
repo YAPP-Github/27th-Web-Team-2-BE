@@ -1,2 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=\
-    com.woossu.server.support.yaml.YamlEnvironmentPostProcessor
+    com.nomoney.support.yaml.YamlEnvironmentPostProcessor

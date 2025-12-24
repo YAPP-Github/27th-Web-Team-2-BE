@@ -2,7 +2,8 @@ rootProject.name = "Yapp"
 
 include(
     "adapter:rdb",
-    "app",
+    "app:api",
     "core",
+    "support:logging",
     "support:yaml",
 )

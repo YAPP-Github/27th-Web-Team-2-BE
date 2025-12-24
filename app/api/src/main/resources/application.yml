@@ -1,0 +1,26 @@
+aws:
+  accessKey: ${AWS_ACCESS_KEY}
+  secretKey: ${AWS_SECRET_KEY}
+
+---
+spring.config.activate.on-profile: local
+
+---
+spring.config.activate.on-profile: sandbox
+
+spring:
+  config:
+    import: 'aws-parameterstore:/nomoney/sandbox/api/'
+
+---
+spring.config.activate.on-profile: prod
+
+spring:
+  config:
+    import: 'aws-parameterstore:/nomoney/prod/api/'
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
