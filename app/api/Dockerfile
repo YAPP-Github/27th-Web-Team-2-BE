@@ -7,6 +7,9 @@ WORKDIR /app
 COPY gradlew gradlew.bat ./
 COPY gradle gradle
 COPY build.gradle.kts settings.gradle.kts ./
+
+# Grant execute permission for gradlew
+RUN chmod +x gradlew
 RUN ./gradlew --no-daemon
 
 # Copy all subproject build files
