@@ -50,16 +50,16 @@ jobs:
     environment: sandbox
 
     env:
-      ECS_CLUSTER: sandbox-nomoney-cluster
+      ECS_CLUSTER: sandbox-ecs-cluster
 
     steps:
       - name: Set deployment config
         run: |
           case "${{ github.event.inputs.deploy_module }}" in
             api)
-              echo "ECR_REPOSITORY=sandbox-nomoney-api" >> $GITHUB_ENV
-              echo "TASK_DEFINITION=sandbox-nomoney-task" >> $GITHUB_ENV
-              echo "ECS_SERVICE=sandbox-nomoney-service" >> $GITHUB_ENV
+              echo "ECR_REPOSITORY=sandbox-app" >> $GITHUB_ENV
+              echo "TASK_DEFINITION=sandbox-app" >> $GITHUB_ENV
+              echo "ECS_SERVICE=sandbox-app-svc" >> $GITHUB_ENV
               ;;
             *)
               echo "❌ Unknown deploy module: ${{ github.event.inputs.deploy_module }}"
