@@ -8,5 +8,4 @@ import org.springframework.web.bind.annotation.RestController
 @Profile("local", "sandbox")
 @Tag(name = SwaggerApiTag.TEST)
 @RestController
-class TestController(
-)
+class TestController()
