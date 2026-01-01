@@ -55,7 +55,7 @@
     <springProperty name="AWS_SECRET_KEY" source="aws.secretKey"/>
 
     <appender name="CLOUD_WATCH_TRANSACTION" class="ca.pjer.logback.AwsLogsAppender">
-        <logGroupName>/${PROFILE}/nomeony/server/transaction_log</logGroupName>
+        <logGroupName>/${PROFILE}/nomoney/server/transaction_log</logGroupName>
         <logStreamUuidPrefix>transaction-</logStreamUuidPrefix>
         <logRegion>ap-northeast-2</logRegion>
         <maxBatchLogEvents>50</maxBatchLogEvents>
@@ -80,7 +80,7 @@
         <accessKeyId>${AWS_ACCESS_KEY}</accessKeyId>
         <secretAccessKey>${AWS_SECRET_KEY}</secretAccessKey>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
-            <layout class="com.woossu.server.support.logging.WooSsuJsonLayout"/>
+            <layout class="com.nomoney.support.logging.NoMoneyJsonLayout"/>
         </encoder>
     </appender>
     <!--  endregion  -->
