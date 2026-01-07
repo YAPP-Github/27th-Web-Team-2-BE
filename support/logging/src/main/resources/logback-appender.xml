@@ -49,40 +49,39 @@
         </encoder>
     </appender>
 
-    <!--    TODO(호연) CloudWatch 로그 그룹 세팅 후 활성화 -->
     <!-- region AWS CLOUD WATCH -->
-    <!--    <springProperty name="PROFILE" source="spring.profiles.active"/>-->
-    <!--    <springProperty name="AWS_ACCESS_KEY" source="aws.accessKey"/>-->
-    <!--    <springProperty name="AWS_SECRET_KEY" source="aws.secretKey"/>-->
+    <springProperty name="PROFILE" source="spring.profiles.active"/>
+    <springProperty name="AWS_ACCESS_KEY" source="aws.accessKey"/>
+    <springProperty name="AWS_SECRET_KEY" source="aws.secretKey"/>
 
-    <!--    <appender name="CLOUD_WATCH_TRANSACTION" class="ca.pjer.logback.AwsLogsAppender">-->
-    <!--        <logGroupName>/${PROFILE}/nomeony/server/transaction_log</logGroupName>-->
-    <!--        <logStreamUuidPrefix>transaction-</logStreamUuidPrefix>-->
-    <!--        <logRegion>ap-northeast-2</logRegion>-->
-    <!--        <maxBatchLogEvents>50</maxBatchLogEvents>-->
-    <!--        <maxFlushTimeMillis>30000</maxFlushTimeMillis>-->
-    <!--        <maxBlockTimeMillis>3000</maxBlockTimeMillis>-->
-    <!--        <retentionTimeDays>15</retentionTimeDays>-->
-    <!--        <accessKeyId>${AWS_ACCESS_KEY}</accessKeyId>-->
-    <!--        <secretAccessKey>${AWS_SECRET_KEY}</secretAccessKey>-->
-    <!--        <layout>-->
-    <!--            <pattern>%msg\n</pattern>-->
-    <!--        </layout>-->
-    <!--    </appender>-->
+    <appender name="CLOUD_WATCH_TRANSACTION" class="ca.pjer.logback.AwsLogsAppender">
+        <logGroupName>/${PROFILE}/nomoney/server/transaction_log</logGroupName>
+        <logStreamUuidPrefix>transaction-</logStreamUuidPrefix>
+        <logRegion>ap-northeast-2</logRegion>
+        <maxBatchLogEvents>50</maxBatchLogEvents>
+        <maxFlushTimeMillis>30000</maxFlushTimeMillis>
+        <maxBlockTimeMillis>3000</maxBlockTimeMillis>
+        <retentionTimeDays>15</retentionTimeDays>
+        <accessKeyId>${AWS_ACCESS_KEY}</accessKeyId>
+        <secretAccessKey>${AWS_SECRET_KEY}</secretAccessKey>
+        <layout>
+            <pattern>%msg\n</pattern>
+        </layout>
+    </appender>
 
-    <!--    <appender name="CLOUD_WATCH_CONSOLE" class="ca.pjer.logback.AwsLogsAppender">-->
-    <!--        <logGroupName>/${PROFILE}/nomoney/server/console_log</logGroupName>-->
-    <!--        <logStreamUuidPrefix>console-</logStreamUuidPrefix>-->
-    <!--        <logRegion>ap-northeast-2</logRegion>-->
-    <!--        <maxBatchLogEvents>50</maxBatchLogEvents>-->
-    <!--        <maxFlushTimeMillis>30000</maxFlushTimeMillis>-->
-    <!--        <maxBlockTimeMillis>3000</maxBlockTimeMillis>-->
-    <!--        <retentionTimeDays>15</retentionTimeDays>-->
-    <!--        <accessKeyId>${AWS_ACCESS_KEY}</accessKeyId>-->
-    <!--        <secretAccessKey>${AWS_SECRET_KEY}</secretAccessKey>-->
-    <!--        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">-->
-    <!--            <layout class="com.woossu.server.support.logging.WooSsuJsonLayout"/>-->
-    <!--        </encoder>-->
-    <!--    </appender>-->
+    <appender name="CLOUD_WATCH_CONSOLE" class="ca.pjer.logback.AwsLogsAppender">
+        <logGroupName>/${PROFILE}/nomoney/server/console_log</logGroupName>
+        <logStreamUuidPrefix>console-</logStreamUuidPrefix>
+        <logRegion>ap-northeast-2</logRegion>
+        <maxBatchLogEvents>50</maxBatchLogEvents>
+        <maxFlushTimeMillis>30000</maxFlushTimeMillis>
+        <maxBlockTimeMillis>3000</maxBlockTimeMillis>
+        <retentionTimeDays>15</retentionTimeDays>
+        <accessKeyId>${AWS_ACCESS_KEY}</accessKeyId>
+        <secretAccessKey>${AWS_SECRET_KEY}</secretAccessKey>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.nomoney.support.logging.NoMoneyJsonLayout"/>
+        </encoder>
+    </appender>
     <!--  endregion  -->
 </included>

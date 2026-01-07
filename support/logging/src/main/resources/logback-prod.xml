@@ -3,16 +3,11 @@
     <include resource="logback-appender.xml"/>
 
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="CLOUD_WATCH_CONSOLE"/>
     </root>
-
-    <!--    TODO(호연) CloudWatch 로그 그룹 세팅 후 활성화 -->
-    <!--    <root level="INFO">-->
-    <!--        <appender-ref ref="CLOUD_WATCH_CONSOLE"/>-->
-    <!--    </root>-->
-    <!--    <logger name="com.nomoney.support.logging.ApiLoggingFilter" level="INFO" additivity="false">-->
-    <!--        <appender-ref ref="CLOUD_WATCH_TRANSACTION"/>-->
-    <!--    </logger>-->
+    <logger name="com.nomoney.support.logging.ApiLoggingFilter" level="INFO" additivity="false">
+        <appender-ref ref="CLOUD_WATCH_TRANSACTION"/>
+    </logger>
 
     <logger name="org.hibernate" level="ERROR"/>
     <logger name="org.springframework.web" level="INFO"/>
