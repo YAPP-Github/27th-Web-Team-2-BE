@@ -29,7 +29,7 @@ class MeetingVoteController(
     @GetMapping("/api/v1/meeting")
     fun getMeetingInfo(
         @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
-        @RequestParam(value = "모임 고유 ID")
+        @RequestParam
         meetId: String,
     ): MeetingInfoResponse {
         val meeting = meetingService.getMeetingInfo(MeetingId(meetId))
