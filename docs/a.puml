@@ -1,0 +1,1 @@
+@startuml'https://plantuml.com/sequence-diagramactor Userparticipant MapServiceparticipant FEparticipant BEdatabase DBautonumberUser -> MapService: 식당 검색User -> FE: 식당 공유 링크 등록 (ex: https://naver.me/GfCsiPo3)FE -> MapService: 해당 페이지 HTML 긁어오기FE -> BE: 페이지 Response 전달BE -> DB: 페이지 정보 저장 및 투표 시스템 등록@enduml
