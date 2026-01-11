@@ -23,4 +23,20 @@ class MeetingJpaEntity : BaseJpaEntity() {
 
     @OneToMany(mappedBy = "meeting", cascade = [CascadeType.ALL], orphanRemoval = true)
     var participants: MutableSet<ParticipantJpaEntity> = mutableSetOf()
+
+    companion object {
+        fun of(
+            meetId: String,
+            title: String,
+            dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf(),
+            participants: MutableSet<ParticipantJpaEntity> = mutableSetOf(),
+        ): MeetingJpaEntity {
+            return MeetingJpaEntity().apply {
+                this.meetId = meetId
+                this.title = title
+                this.dates = dates
+                this.participants = participants
+            }
+        }
+    }
 }

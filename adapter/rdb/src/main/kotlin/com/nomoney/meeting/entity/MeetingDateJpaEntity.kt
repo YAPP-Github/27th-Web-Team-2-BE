@@ -24,6 +24,15 @@ class MeetingDateJpaEntity : BaseJpaEntity() {
     @Id
     @Column(name = "available_date", nullable = false)
     lateinit var availableDate: LocalDate
+
+    companion object {
+        fun of(meeting: MeetingJpaEntity, availableDate: LocalDate): MeetingDateJpaEntity {
+            return MeetingDateJpaEntity().apply {
+                this.meeting = meeting
+                this.availableDate = availableDate
+            }
+        }
+    }
 }
 
 data class MeetingDateId(

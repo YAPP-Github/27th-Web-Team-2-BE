@@ -24,6 +24,15 @@ class ParticipantVoteDateJpaEntity : BaseJpaEntity() {
     @Id
     @Column(name = "vote_date", nullable = false)
     lateinit var voteDate: LocalDate
+
+    companion object {
+        fun of(participant: ParticipantJpaEntity, voteDate: LocalDate): ParticipantVoteDateJpaEntity {
+            return ParticipantVoteDateJpaEntity().apply {
+                this.participant = participant
+                this.voteDate = voteDate
+            }
+        }
+    }
 }
 
 data class ParticipantVoteDateId(

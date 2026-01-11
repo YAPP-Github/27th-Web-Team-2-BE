@@ -52,41 +52,38 @@ class MeetingAdapter(
     }
 
     private fun Meeting.toEntity(): MeetingJpaEntity {
-        val meetingEntity = MeetingJpaEntity().apply {
-            meetId = this@toEntity.id.value
-            title = this@toEntity.title
-        }
+        val meetingEntity = MeetingJpaEntity.of(
+            meetId = this.id.value,
+            title = this.title,
+        )
 
         val dateEntities = this.dates.map { date ->
-            MeetingDateJpaEntity().apply {
-                meeting = meetingEntity
-                availableDate = date
-            }
+            MeetingDateJpaEntity.of(
+                meeting = meetingEntity,
+                availableDate = date,
+            )
         }.toMutableSet()
 
         val participantEntities = this.participants.map { participant ->
-            val participantEntity = ParticipantJpaEntity().apply {
-                participantId = participant.id.value.takeIf { it != 0L }
-                meeting = meetingEntity
-                name = participant.name
-            }
+            val participantEntity = ParticipantJpaEntity.of(
+                participantId = participant.id.value.takeIf { it != 0L },
+                meeting = meetingEntity,
+                name = participant.name,
+            )
 
             val voteDateEntities = participant.voteDates.map { voteDate ->
-                ParticipantVoteDateJpaEntity().apply {
-                    this.participant = participantEntity
-                    this.voteDate = voteDate
-                }
+                ParticipantVoteDateJpaEntity.of(
+                    participant = participantEntity,
+                    voteDate = voteDate,
+                )
             }.toMutableSet()
 
-            participantEntity.apply {
-                voteDates = voteDateEntities
-            }
+            participantEntity.voteDates = voteDateEntities
+            participantEntity
         }.toMutableSet()
 
-        meetingEntity.apply {
-            dates = dateEntities
-            participants = participantEntities
-        }
+        meetingEntity.dates = dateEntities
+        meetingEntity.participants = participantEntities
 
         return meetingEntity
     }
