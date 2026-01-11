@@ -33,7 +33,7 @@ class MeetingVoteController(
         meetId: String,
     ): MeetingInfoResponse {
         val meeting = meetingService.getMeetingInfo(MeetingId(meetId))
-        return meeting.toResponse()
+        return meeting?.toResponse() ?: throw RuntimeException("존재하지 않는 ID 입니다.") // TODO(호연) 예외처리
     }
 
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성하고 고유 ID를 발급합니다")
@@ -41,9 +41,20 @@ class MeetingVoteController(
     fun createMeeting(
         @RequestBody request: CreateMeetingRequest,
     ): CreateMeetingResponse {
-        return CreateMeetingResponse(
-            id = meetingService.generateMeetId(),
+        val meeting = meetingService.createMeeting(
+            title = request.title,
+            dates = request.dates.toSet(),
+            maxParticipantCount = null,
         )
+
+        // 주최자를 빈 투표 날짜로 participant에 추가
+        meetingService.addParticipant(
+            meetingId = meeting.id,
+            name = request.hostName,
+            voteDates = emptySet(),
+        )
+
+        return CreateMeetingResponse(id = meeting.id)
     }
 
     @Operation(summary = "참여자 이름 중복 확인", description = "모임에 동일한 이름의 참여자가 있는지 확인합니다")
@@ -65,7 +76,17 @@ class MeetingVoteController(
     fun createVote(
         @RequestBody request: VoteRequest,
     ): VoteResponse {
-        // Mock API - 실제 로직은 구현하지 않음
+        val isExist = meetingService.isExistName(request.meetingId, request.name)
+        if (isExist) {
+            throw IllegalArgumentException("이미 존재하는 이름입니다: ${request.name}")
+        }
+
+        meetingService.addParticipant(
+            meetingId = request.meetingId,
+            name = request.name,
+            voteDates = request.voteDates.toSet(),
+        )
+
         return VoteResponse(success = true)
     }
 
@@ -74,7 +95,12 @@ class MeetingVoteController(
     fun updateVote(
         @RequestBody request: VoteRequest,
     ): VoteResponse {
-        // Mock API - 실제 로직은 구현하지 않음
+        meetingService.updateParticipant(
+            meetingId = request.meetingId,
+            name = request.name,
+            voteDates = request.voteDates.toSet(),
+        )
+
         return VoteResponse(success = true)
     }
 }
