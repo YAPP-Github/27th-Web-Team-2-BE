@@ -11,4 +11,8 @@ Http 통신과 관련된 객체를 도메인 객체로 변경하여 core를 이�
 core에서 외부 컴포넌트를 호출하는 인터페이스 모듈입니다.
 port 는 Repository 접미어를 가집니다.
 ## adaptor
-port의 구현체 입니다.
+port의 구현체 입니다. 아래와 같은 요소들이 있습니다.
+- rdb
+- redis
+- kafka
+- web client
