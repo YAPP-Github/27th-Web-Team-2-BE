@@ -1,0 +1,13 @@
+name: Add issues to project
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/YAPP-Github/projects/29
+          github-token: ${{ secrets.TOKEN_GITHUB }}
