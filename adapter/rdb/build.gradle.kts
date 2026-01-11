@@ -21,7 +21,8 @@ noArg {
 }
 
 dependencies {
-    implementation(project(":core"))
+    api(project(":domain"))
+    api(project(":port"))
     implementation(project(":support:yaml"))
 
     api("org.springframework.boot:spring-boot-starter-data-jpa")
