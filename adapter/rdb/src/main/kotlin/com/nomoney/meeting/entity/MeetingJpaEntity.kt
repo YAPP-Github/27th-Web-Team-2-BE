@@ -13,9 +13,9 @@ class MeetingJpaEntity : BaseJpaEntity() {
     @Column(name = "title", nullable = false)
     lateinit var title: String
 
-    @Column(name = "max_participant_count", nullable = true)
-    var maxParticipantCount: Int? = null
-
     @OneToMany(mappedBy = "meeting", cascade = [CascadeType.ALL], orphanRemoval = true)
     var dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf()
+
+    @OneToMany(mappedBy = "meeting", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var participants: MutableSet<ParticipantJpaEntity> = mutableSetOf()
 }
