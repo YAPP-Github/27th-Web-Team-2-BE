@@ -7,6 +7,8 @@ import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toResponse
+import com.nomoney.exception.DuplicateContentException
+import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
 import io.swagger.v3.oas.annotations.Operation
@@ -33,7 +35,7 @@ class MeetingVoteController(
         meetId: String,
     ): MeetingInfoResponse {
         val meeting = meetingService.getMeetingInfo(MeetingId(meetId))
-        return meeting?.toResponse() ?: throw RuntimeException("존재하지 않는 ID 입니다.") // TODO(호연) 예외처리
+        return meeting?.toResponse() ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: $meetId")
     }
 
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성하고 고유 ID를 발급합니다")
@@ -78,7 +80,7 @@ class MeetingVoteController(
     ): VoteResponse {
         val isExist = meetingService.isExistName(request.meetingId, request.name)
         if (isExist) {
-            throw IllegalArgumentException("이미 존재하는 이름입니다: ${request.name}")
+            throw DuplicateContentException("이미 존재하는 이름입니다.", "name: ${request.name}")
         }
 
         meetingService.addParticipant(
