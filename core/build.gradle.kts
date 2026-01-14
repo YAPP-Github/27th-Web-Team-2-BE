@@ -7,6 +7,9 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":adapter:rdb"))
+    api(project(":domain"))
+    implementation(project(":port"))
     implementation(project(":support:logging"))
     implementation(project(":support:yaml"))
 

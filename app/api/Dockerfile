@@ -16,6 +16,8 @@ RUN ./gradlew --no-daemon
 COPY adapter adapter
 COPY app app
 COPY core core
+COPY domain domain
+COPY port port
 COPY support support
 
 # Build the application
