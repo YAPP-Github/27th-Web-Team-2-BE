@@ -14,7 +14,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
 
-//    implementation("io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config")
+    implementation(platform("io.awspring.cloud:spring-cloud-aws-dependencies:2.4.0"))
+    implementation("io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config")
 }
 
 tasks {
