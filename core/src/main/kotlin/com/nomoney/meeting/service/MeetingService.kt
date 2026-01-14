@@ -32,6 +32,11 @@ class MeetingService {
         )
     }
 
+    fun isExistName(meetingId: MeetingId, name: String): Boolean {
+        val meeting = getMeetingInfo(meetingId)
+        return meeting.participants.any { it.name == name }
+    }
+
     fun generateMeetId(): MeetingId {
         val random = SecureRandom()
         val bytes = ByteArray(8)

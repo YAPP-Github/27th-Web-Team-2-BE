@@ -2,6 +2,7 @@ package com.nomoney.api.meetvote
 
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
+import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
@@ -43,6 +44,20 @@ class MeetingVoteController(
         return CreateMeetingResponse(
             id = meetingService.generateMeetId(),
         )
+    }
+
+    @Operation(summary = "참여자 이름 중복 확인", description = "모임에 동일한 이름의 참여자가 있는지 확인합니다")
+    @GetMapping("/api/v1/meeting/participant/exist")
+    fun checkDuplicateName(
+        @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
+        @RequestParam
+        meetId: String,
+        @Parameter(description = "확인할 참여자 이름", required = true, example = "이호연")
+        @RequestParam
+        name: String,
+    ): IsExistNameResponse {
+        val isExist = meetingService.isExistName(MeetingId(meetId), name)
+        return IsExistNameResponse(isExist = isExist)
     }
 
     @Operation(summary = "투표 생성", description = "모임에 대한 투표를 생성합니다. 중복된 이름으로 투표할 경우 에러가 발생합니다.")
