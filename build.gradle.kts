@@ -15,7 +15,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-group = "com.woossu"
+group = "com.nomoney"
 version = "0.0.1-SNAPSHOT"
 
 allprojects {
