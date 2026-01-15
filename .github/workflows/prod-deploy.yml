@@ -1,0 +1,168 @@
+name: Deploy to Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_module:
+        description: '배포할 모듈을 선택하세요'
+        required: true
+        type: choice
+        options:
+          - api
+
+env:
+  AWS_REGION: ap-northeast-2
+  PHASE: sandbox
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Check ktlint format
+        run: ./gradlew ktlintCheck
+
+      - name: Run tests
+        run: ./gradlew test
+
+  deploy:
+    name: Deploy ${{ github.event.inputs.deploy_module }}
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ !failure() }}
+    environment: prod
+
+    env:
+      ECS_CLUSTER: prod-ecs-cluster
+
+    steps:
+      - name: Set deployment config
+        run: |
+          case "${{ github.event.inputs.deploy_module }}" in
+            api)
+              echo "ECR_REPOSITORY=prod-app" >> $GITHUB_ENV
+              echo "TASK_DEFINITION=prod-app" >> $GITHUB_ENV
+              echo "ECS_SERVICE=prod-app-svc" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "❌ Unknown deploy module: ${{ github.event.inputs.deploy_module }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./app/api/Dockerfile
+          push: true
+          build-args: |
+            PHASE=${{ env.PHASE }}
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image output
+        id: set-image
+        run: |
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition $TASK_DEFINITION \
+            --query taskDefinition > task-def.json
+
+      - name: Update task definition
+        run: |
+          jq --arg IMAGE "${{ steps.set-image.outputs.image }}" \
+            '.containerDefinitions[0].image = $IMAGE' \
+            task-def.json > new-task-def.json
+
+          # 불필요한 필드 제거
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            new-task-def.json > final-task-def.json
+
+      - name: Register task definition
+        id: register
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://final-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task-def-arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --task-definition ${{ steps.register.outputs.task-def-arn }}
+          echo "✅ API deployed successfully"
+
+      - name: Send Discord Notification (Success)
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            THREAD_NAME="[prod] ${{ github.event.inputs.deploy_module }} 배포 성공"
+            MESSAGE="- Actor: ${{ github.actor }}\n- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            curl -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"content\": \"$MESSAGE\", \"thread_name\": \"$THREAD_NAME\"}"
+          fi
+
+      # ❌ Plan 실패 → 스레드 이름은 동일, 메시지만 실패 표시
+      - name: Send Discord Notification (Failure)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            THREAD_NAME="❌ [prod] ${{ github.event.inputs.deploy_module }} 배포 실패"
+            MESSAGE="- Actor: ${{ github.actor }}\n- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            curl -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"content\": \"$MESSAGE\", \"thread_name\": \"$THREAD_NAME\"}"
+          fi
