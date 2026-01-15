@@ -1,5 +1,6 @@
 package com.nomoney.meeting.service
 
+import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.Participant
@@ -7,13 +8,14 @@ import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
 import java.security.SecureRandom
 import java.time.LocalDate
-import java.util.Base64
 import org.springframework.stereotype.Service
 
 @Service
 class MeetingService(
     private val meetingRepository: MeetingRepository,
 ) {
+    private val random = SecureRandom()
+
     fun createMeeting(
         title: String,
         dates: Set<LocalDate>,
@@ -40,7 +42,7 @@ class MeetingService(
         voteDates: Set<LocalDate>,
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
-            ?: throw IllegalArgumentException("Meeting not found: ${meetingId.value}")
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
 
         val newParticipant = Participant(
             id = ParticipantId(0L),
@@ -61,10 +63,10 @@ class MeetingService(
         voteDates: Set<LocalDate>,
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
-            ?: throw IllegalArgumentException("Meeting not found: ${meetingId.value}")
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
 
         val existingParticipant = meeting.participants.find { it.name == name }
-            ?: throw IllegalArgumentException("Participant not found: $name")
+            ?: throw NotFoundException("참여자를 찾을 수 없습니다.", "name: $name")
 
         val updatedParticipants = meeting.participants.map { participant ->
             if (participant.name == name) {
@@ -85,12 +87,10 @@ class MeetingService(
     }
 
     fun generateMeetId(): MeetingId {
-        val random = SecureRandom()
-        val bytes = ByteArray(8)
-        random.nextBytes(bytes)
-
-        val encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
-        val meetId = encoded.take(10)
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        val meetId = (1..12)
+            .map { chars[random.nextInt(chars.length)] }
+            .joinToString("")
 
         return MeetingId(meetId)
     }
