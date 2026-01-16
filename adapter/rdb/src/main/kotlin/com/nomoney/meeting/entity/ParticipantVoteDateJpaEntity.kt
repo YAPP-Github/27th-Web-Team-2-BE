@@ -2,40 +2,51 @@ package com.nomoney.meeting.entity
 
 import com.nomoney.base.BaseJpaEntity
 import jakarta.persistence.Column
+import jakarta.persistence.Embeddable
+import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
-import jakarta.persistence.Id
-import jakarta.persistence.IdClass
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.MapsId
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import java.io.Serializable
 import java.time.LocalDate
 
 @Entity
 @Table(name = "participant_vote_dates")
-@IdClass(ParticipantVoteDateId::class)
 class ParticipantVoteDateJpaEntity : BaseJpaEntity() {
-    @Id
+    @EmbeddedId
+    lateinit var id: ParticipantVoteDateId
+
+    @MapsId("participantId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "participant_id", nullable = false)
     lateinit var participant: ParticipantJpaEntity
 
-    @Id
-    @Column(name = "vote_date", nullable = false)
-    lateinit var voteDate: LocalDate
+    @get:Transient
+    val voteDate: LocalDate
+        get() = id.voteDate
 
     companion object {
         fun of(participant: ParticipantJpaEntity, voteDate: LocalDate): ParticipantVoteDateJpaEntity {
             return ParticipantVoteDateJpaEntity().apply {
+                this.id = ParticipantVoteDateId(
+                    participantId = null,
+                    voteDate = voteDate,
+                )
                 this.participant = participant
-                this.voteDate = voteDate
             }
         }
     }
 }
 
+@Embeddable
 data class ParticipantVoteDateId(
-    val participant: Long = 0L,
-    val voteDate: LocalDate = LocalDate.now(),
+    @Column(name = "participant_id")
+    var participantId: Long? = null,
+
+    @Column(name = "vote_date")
+    var voteDate: LocalDate = LocalDate.now(),
 ) : Serializable
