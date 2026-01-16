@@ -18,6 +18,7 @@ class MeetingService(
 
     fun createMeeting(
         title: String,
+        hostName: String?,
         dates: Set<LocalDate>,
         maxParticipantCount: Int? = null,
     ): Meeting {
@@ -25,6 +26,7 @@ class MeetingService(
         val meeting = Meeting(
             id = meetingId,
             title = title,
+            hostName = hostName,
             dates = dates,
             maxParticipantCount = maxParticipantCount,
             participants = emptyList(),

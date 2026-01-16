@@ -45,6 +45,7 @@ class MeetingVoteController(
     ): CreateMeetingResponse {
         val meeting = meetingService.createMeeting(
             title = request.title,
+            hostName = request.hostName,
             dates = request.dates.toSet(),
             maxParticipantCount = null,
         )
