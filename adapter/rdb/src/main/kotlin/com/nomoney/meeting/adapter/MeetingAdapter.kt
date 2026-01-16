@@ -10,6 +10,7 @@ import com.nomoney.meeting.entity.ParticipantJpaEntity
 import com.nomoney.meeting.entity.ParticipantVoteDateJpaEntity
 import com.nomoney.meeting.port.MeetingRepository
 import com.nomoney.meeting.repository.MeetingJpaRepository
+import java.time.LocalDate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -28,7 +29,9 @@ class MeetingAdapter(
 
     @Transactional
     override fun save(meeting: Meeting): Meeting {
-        val entity = meeting.toEntity()
+        val entity = meetingJpaRepository.findByMeetIdWithParticipants(meeting.id.value)
+            ?.apply { updateFrom(meeting) }
+            ?: meeting.toEntity()
         val savedEntity = meetingJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
@@ -57,34 +60,88 @@ class MeetingAdapter(
             title = this.title,
         )
 
-        val dateEntities = this.dates.map { date ->
-            MeetingDateJpaEntity.of(
-                meeting = meetingEntity,
-                availableDate = date,
-            )
-        }.toMutableSet()
+        meetingEntity.updateDates(this.dates)
+        meetingEntity.updateParticipants(this.participants)
 
-        val participantEntities = this.participants.map { participant ->
-            val participantEntity = ParticipantJpaEntity.of(
-                participantId = participant.id.value.takeIf { it != 0L },
-                meeting = meetingEntity,
-                name = participant.name,
-            )
+        return meetingEntity
+    }
 
-            val voteDateEntities = participant.voteDates.map { voteDate ->
+    private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
+        this.title = meeting.title
+        updateDates(meeting.dates)
+        updateParticipants(meeting.participants)
+    }
+
+    private fun MeetingJpaEntity.updateDates(dates: Set<LocalDate>) {
+        this.dates.removeIf { it.availableDate !in dates }
+        val existingDates = this.dates.map { it.availableDate }.toSet()
+        val datesToAdd = dates - existingDates
+        datesToAdd.forEach { date ->
+            this.dates.add(
+                MeetingDateJpaEntity.of(
+                    meeting = this,
+                    availableDate = date,
+                ),
+            )
+        }
+    }
+
+    private fun MeetingJpaEntity.updateParticipants(participants: List<Participant>) {
+        val existingById = this.participants
+            .mapNotNull { entity -> entity.participantId?.let { id -> id to entity } }
+            .toMap()
+
+        val incomingIds = participants.mapNotNull { participant ->
+            participant.id.value.takeIf { it != 0L }
+        }.toSet()
+
+        this.participants.removeIf { entity ->
+            entity.participantId != null && entity.participantId !in incomingIds
+        }
+
+        val currentIds = this.participants.mapNotNull { it.participantId }.toSet()
+
+        participants.forEach { participant ->
+            if (participant.id.value != 0L) {
+                val participantEntity = existingById[participant.id.value]
+                    ?: ParticipantJpaEntity.of(
+                        participantId = participant.id.value,
+                        meeting = this,
+                        name = participant.name,
+                    )
+
+                participantEntity.name = participant.name
+                updateVoteDates(participantEntity, participant.voteDates)
+
+                if (participant.id.value !in currentIds) {
+                    this.participants.add(participantEntity)
+                }
+            } else {
+                val participantEntity = ParticipantJpaEntity.of(
+                    participantId = null,
+                    meeting = this,
+                    name = participant.name,
+                )
+                updateVoteDates(participantEntity, participant.voteDates)
+                this.participants.add(participantEntity)
+            }
+        }
+    }
+
+    private fun updateVoteDates(
+        participantEntity: ParticipantJpaEntity,
+        voteDates: Set<LocalDate>,
+    ) {
+        participantEntity.voteDates.removeIf { it.voteDate !in voteDates }
+        val existingDates = participantEntity.voteDates.map { it.voteDate }.toSet()
+        val datesToAdd = voteDates - existingDates
+        datesToAdd.forEach { voteDate ->
+            participantEntity.voteDates.add(
                 ParticipantVoteDateJpaEntity.of(
                     participant = participantEntity,
                     voteDate = voteDate,
-                )
-            }.toMutableSet()
-
-            participantEntity.voteDates = voteDateEntities
-            participantEntity
-        }.toMutableSet()
-
-        meetingEntity.dates = dateEntities
-        meetingEntity.participants = participantEntities
-
-        return meetingEntity
+                ),
+            )
+        }
     }
 }
