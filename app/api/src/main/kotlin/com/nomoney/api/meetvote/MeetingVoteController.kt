@@ -79,16 +79,29 @@ class MeetingVoteController(
     fun createVote(
         @RequestBody request: VoteRequest,
     ): VoteResponse {
-        val isExist = meetingService.isExistName(request.meetingId, request.name)
-        if (isExist) {
+        val meeting = meetingService.getMeetingInfo(request.meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${request.meetingId.value}")
+
+        val isExist = meeting.participants.any { it.name == request.name }
+        val isHost = meeting.hostName == request.name
+
+        if (isExist && !isHost) {
             throw DuplicateContentException("이미 존재하는 이름입니다.", "name: ${request.name}")
         }
 
-        meetingService.addParticipant(
-            meetingId = request.meetingId,
-            name = request.name,
-            voteDates = request.voteDates.toSet(),
-        )
+        if (isExist) {
+            meetingService.updateParticipant(
+                meetingId = request.meetingId,
+                name = request.name,
+                voteDates = request.voteDates.toSet(),
+            )
+        } else {
+            meetingService.addParticipant(
+                meetingId = request.meetingId,
+                name = request.name,
+                voteDates = request.voteDates.toSet(),
+            )
+        }
 
         return VoteResponse(success = true)
     }
