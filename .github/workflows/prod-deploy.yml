@@ -12,7 +12,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  PHASE: sandbox
+  PHASE: prod
 
 permissions:
   contents: read
