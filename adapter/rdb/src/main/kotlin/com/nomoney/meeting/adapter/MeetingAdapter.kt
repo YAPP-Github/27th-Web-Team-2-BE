@@ -32,7 +32,7 @@ class MeetingAdapter(
         val existing = meetingJpaRepository.findByMeetIdWithParticipants(meeting.id.value)
 
         val entity = if (existing != null) {
-            existing.apply { updateFrom(meeting) }
+            existing.apply { this.updateFrom(meeting) }
         } else {
             meeting.toEntity()
         }
@@ -73,8 +73,8 @@ class MeetingAdapter(
 
     private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
         this.title = meeting.title
-        updateDates(meeting.dates)
-        updateParticipants(meeting.participants)
+        this.updateDates(meeting.dates)
+        this.updateParticipants(meeting.participants)
     }
 
     private fun MeetingJpaEntity.updateDates(dates: Set<LocalDate>) {
