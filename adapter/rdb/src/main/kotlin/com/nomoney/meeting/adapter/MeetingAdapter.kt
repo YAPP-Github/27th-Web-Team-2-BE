@@ -65,22 +65,16 @@ class MeetingAdapter(
             title = this.title,
         )
 
-        meetingEntity.updateDates(this.dates)
-        meetingEntity.updateParticipants(this.participants)
+        meetingEntity.addMeetingDates(this.dates)
+        meetingEntity.addParticipants(this.participants)
 
         return meetingEntity
     }
 
-    private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
-        this.title = meeting.title
-        this.updateParticipants(meeting.participants)
-    }
-
-    private fun MeetingJpaEntity.updateDates(dates: Set<LocalDate>) {
-        this.dates.removeIf { it.availableDate !in dates }
-        val existingDates = this.dates.map { it.availableDate }.toSet()
-        val datesToAdd = dates - existingDates
-        datesToAdd.forEach { date ->
+    private fun MeetingJpaEntity.addMeetingDates(
+        incomingDates: Set<LocalDate>,
+    ) {
+        incomingDates.forEach { date ->
             this.dates.add(
                 MeetingDateJpaEntity.of(
                     meeting = this,
@@ -88,6 +82,36 @@ class MeetingAdapter(
                 ),
             )
         }
+    }
+
+    private fun MeetingJpaEntity.addParticipants(
+        incomingParticipants: List<Participant>,
+    ) {
+        incomingParticipants.forEach { participant ->
+            this.participants.add(participant.toEntity(this))
+        }
+    }
+
+    private fun Participant.toEntity(meeting: MeetingJpaEntity): ParticipantJpaEntity {
+        val participantEntity = ParticipantJpaEntity.of(
+            participantId = this.id.value.takeIf { it != 0L },
+            meeting = meeting,
+            name = this.name,
+        )
+        this.voteDates.forEach { voteDate ->
+            participantEntity.voteDates.add(
+                ParticipantVoteDateJpaEntity.of(
+                    participant = participantEntity,
+                    voteDate = voteDate,
+                ),
+            )
+        }
+        return participantEntity
+    }
+
+    private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
+        this.title = meeting.title
+        this.updateParticipants(meeting.participants)
     }
 
     private fun MeetingJpaEntity.updateParticipants(participants: List<Participant>) {
