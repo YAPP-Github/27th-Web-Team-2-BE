@@ -73,7 +73,6 @@ class MeetingAdapter(
 
     private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
         this.title = meeting.title
-        this.updateDates(meeting.dates)
         this.updateParticipants(meeting.participants)
     }
 
