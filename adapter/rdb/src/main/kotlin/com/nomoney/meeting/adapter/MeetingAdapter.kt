@@ -115,44 +115,59 @@ class MeetingAdapter(
     }
 
     private fun MeetingJpaEntity.updateParticipants(participants: List<Participant>) {
-        val existingById = this.participants
-            .mapNotNull { entity -> entity.participantId?.let { id -> id to entity } }
+        val existingById = indexExistingParticipants()
+        val incomingIds = participants
+            .filterNot { it.isNew() }
+            .map { it.id.value }
+            .toSet()
+
+        removeParticipantsNotIn(incomingIds)
+
+        val remainingIds = this.participants.mapNotNull { it.participantId }.toSet()
+
+        participants.forEach { participant ->
+            val participantEntity = resolveParticipantEntity(participant, existingById)
+
+            participantEntity.name = participant.name
+            updateVoteDates(participantEntity, participant.voteDates)
+
+            if (participant.isNew() || participant.id.value !in remainingIds) {
+                this.participants.add(participantEntity)
+            }
+        }
+    }
+
+    private fun MeetingJpaEntity.indexExistingParticipants(): Map<Long, ParticipantJpaEntity> {
+        return this.participants
+            .mapNotNull { entity ->
+                entity.participantId?.let { id -> id to entity }
+            }
             .toMap()
+    }
 
-        val incomingIds = participants.mapNotNull { participant ->
-            participant.id.value.takeIf { it != 0L }
-        }.toSet()
-
+    private fun MeetingJpaEntity.removeParticipantsNotIn(incomingIds: Set<Long>) {
         this.participants.removeIf { entity ->
             entity.participantId != null && entity.participantId !in incomingIds
         }
+    }
 
-        val currentIds = this.participants.mapNotNull { it.participantId }.toSet()
-
-        participants.forEach { participant ->
-            if (participant.id.value != 0L) {
-                val participantEntity = existingById[participant.id.value]
-                    ?: ParticipantJpaEntity.of(
-                        participantId = participant.id.value,
-                        meeting = this,
-                        name = participant.name,
-                    )
-
-                participantEntity.name = participant.name
-                updateVoteDates(participantEntity, participant.voteDates)
-
-                if (participant.id.value !in currentIds) {
-                    this.participants.add(participantEntity)
-                }
-            } else {
-                val participantEntity = ParticipantJpaEntity.of(
-                    participantId = null,
+    private fun MeetingJpaEntity.resolveParticipantEntity(
+        participant: Participant,
+        existingById: Map<Long, ParticipantJpaEntity>,
+    ): ParticipantJpaEntity {
+        return if (participant.isNew()) {
+            ParticipantJpaEntity.of(
+                participantId = null,
+                meeting = this,
+                name = participant.name,
+            )
+        } else {
+            existingById[participant.id.value]
+                ?: ParticipantJpaEntity.of(
+                    participantId = participant.id.value,
                     meeting = this,
                     name = participant.name,
                 )
-                updateVoteDates(participantEntity, participant.voteDates)
-                this.participants.add(participantEntity)
-            }
         }
     }
 
@@ -172,4 +187,6 @@ class MeetingAdapter(
             )
         }
     }
+
+    private fun Participant.isNew(): Boolean = this.id.value == 0L
 }
