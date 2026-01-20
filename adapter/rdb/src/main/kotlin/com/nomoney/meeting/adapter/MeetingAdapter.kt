@@ -29,9 +29,14 @@ class MeetingAdapter(
 
     @Transactional
     override fun save(meeting: Meeting): Meeting {
-        val entity = meetingJpaRepository.findByMeetIdWithParticipants(meeting.id.value)
-            ?.apply { updateFrom(meeting) }
-            ?: meeting.toEntity()
+        val existing = meetingJpaRepository.findByMeetIdWithParticipants(meeting.id.value)
+
+        val entity = if (existing != null) {
+            existing.apply { updateFrom(meeting) }
+        } else {
+            meeting.toEntity()
+        }
+
         val savedEntity = meetingJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
