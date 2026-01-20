@@ -39,6 +39,10 @@ class MeetingService(
         return meetingRepository.findByMeetingId(meetingId)
     }
 
+    fun getAllMeetings(): List<Meeting> {
+        return meetingRepository.findAll()
+    }
+
     fun addParticipant(
         meetingId: MeetingId,
         name: String,
