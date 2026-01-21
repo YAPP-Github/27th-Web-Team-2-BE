@@ -54,7 +54,7 @@ class MeetingAdapter(
 
     private fun ParticipantJpaEntity.toDomain(): Participant {
         return Participant(
-            id = ParticipantId(this.participantId ?: 0L),
+            id = ParticipantId(this.participantId),
             name = this.name,
             voteDates = this.voteDates.map { it.voteDate }.toSet(),
             hasVoted = this.hasVoted,
@@ -97,7 +97,7 @@ class MeetingAdapter(
 
     private fun Participant.toEntity(meeting: MeetingJpaEntity): ParticipantJpaEntity {
         val participantEntity = ParticipantJpaEntity.of(
-            participantId = this.id.value.takeIf { it != 0L },
+            participantId = this.id.value,
             meeting = meeting,
             name = this.name,
             hasVoted = this.hasVoted,
@@ -127,7 +127,7 @@ class MeetingAdapter(
 
         removeParticipantsNotIn(incomingIds)
 
-        val remainingIds = this.participants.mapNotNull { it.participantId }.toSet()
+        val remainingIds = this.participants.map { it.participantId }.toSet()
 
         participants.forEach { participant ->
             val participantEntity = resolveParticipantEntity(participant, existingById)
@@ -144,15 +144,13 @@ class MeetingAdapter(
 
     private fun MeetingJpaEntity.indexExistingParticipants(): Map<Long, ParticipantJpaEntity> {
         return this.participants
-            .mapNotNull { entity ->
-                entity.participantId?.let { id -> id to entity }
-            }
-            .toMap()
+            .filter { it.participantId != 0L }
+            .associateBy { it.participantId }
     }
 
     private fun MeetingJpaEntity.removeParticipantsNotIn(incomingIds: Set<Long>) {
         this.participants.removeIf { entity ->
-            entity.participantId != null && entity.participantId !in incomingIds
+            entity.participantId != 0L && entity.participantId !in incomingIds
         }
     }
 
@@ -162,7 +160,7 @@ class MeetingAdapter(
     ): ParticipantJpaEntity {
         return if (participant.isNew()) {
             ParticipantJpaEntity.of(
-                participantId = null,
+                participantId = 0L,
                 meeting = this,
                 name = participant.name,
                 hasVoted = participant.hasVoted,
