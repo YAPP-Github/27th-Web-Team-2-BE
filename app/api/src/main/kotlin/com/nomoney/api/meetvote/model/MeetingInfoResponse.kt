@@ -29,6 +29,7 @@ data class ParticipantResponse(
     val id: ParticipantId,
     val name: String,
     val voteDates: List<LocalDate>,
+    val hasVoted: Boolean,
 )
 
 fun Meeting.toResponse(): MeetingInfoResponse = MeetingInfoResponse(
@@ -43,4 +44,5 @@ fun Participant.toResponse(): ParticipantResponse = ParticipantResponse(
     id = id,
     name = this.name,
     voteDates = this.voteDates.toList().sorted(),
+    hasVoted = this.hasVoted,
 )
