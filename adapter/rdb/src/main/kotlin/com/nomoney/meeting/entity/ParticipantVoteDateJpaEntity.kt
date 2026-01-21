@@ -33,7 +33,7 @@ class ParticipantVoteDateJpaEntity : BaseJpaEntity() {
         fun of(participant: ParticipantJpaEntity, voteDate: LocalDate): ParticipantVoteDateJpaEntity {
             return ParticipantVoteDateJpaEntity().apply {
                 this.id = ParticipantVoteDateId(
-                    participantId = null,
+                    participantId = 0L,
                     voteDate = voteDate,
                 )
                 this.participant = participant
@@ -45,7 +45,7 @@ class ParticipantVoteDateJpaEntity : BaseJpaEntity() {
 @Embeddable
 data class ParticipantVoteDateId(
     @Column(name = "participant_id")
-    var participantId: Long? = null,
+    var participantId: Long = 0L,
 
     @Column(name = "vote_date")
     var voteDate: LocalDate = LocalDate.now(),
