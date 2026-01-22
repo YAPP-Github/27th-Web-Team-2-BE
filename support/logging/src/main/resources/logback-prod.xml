@@ -4,6 +4,7 @@
 
     <root level="INFO">
         <appender-ref ref="CLOUD_WATCH_CONSOLE"/>
+        <appender-ref ref="API_FILE"/>
     </root>
     <logger name="com.nomoney.support.logging.ApiLoggingFilter" level="INFO" additivity="false">
         <appender-ref ref="CLOUD_WATCH_TRANSACTION"/>
