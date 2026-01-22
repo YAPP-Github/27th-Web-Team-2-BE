@@ -115,10 +115,10 @@ jobs:
 
       - name: Update task definition
         run: |
-            # 이름이 "app"인 컨테이너를 찾아서 그 이미지만 변경한다.
-            jq --arg IMAGE "${{ steps.set-image.outputs.image }}" \
-            '(.containerDefinitions[] | select(.name == "app").image) |= $IMAGE' \
-            task-def.json > new-task-def.json
+          # 이름이 "app"인 컨테이너를 찾아서 그 이미지만 변경한다.
+          jq --arg IMAGE "${{ steps.set-image.outputs.image }}" \
+          '(.containerDefinitions[] | select(.name == "app").image) |= $IMAGE' \
+          task-def.json > new-task-def.json
 
           # 불필요한 필드 제거
           jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
