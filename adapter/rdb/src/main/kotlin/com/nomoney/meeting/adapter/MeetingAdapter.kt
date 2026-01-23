@@ -45,6 +45,7 @@ class MeetingAdapter(
         return Meeting(
             id = MeetingId(this.meetId),
             title = this.title,
+            hostName = this.hostName,
             dates = this.dates.map { it.availableDate }.toSet(),
             maxParticipantCount = null,
             participants = this.participants.map { it.toDomain() },
@@ -56,6 +57,7 @@ class MeetingAdapter(
             id = ParticipantId(this.participantId),
             name = this.name,
             voteDates = this.voteDates.map { it.voteDate }.toSet(),
+            hasVoted = this.hasVoted,
         )
     }
 
@@ -63,6 +65,7 @@ class MeetingAdapter(
         val meetingEntity = MeetingJpaEntity.of(
             meetId = this.id.value,
             title = this.title,
+            hostName = this.hostName,
         )
 
         meetingEntity.addMeetingDates(this.dates)
@@ -97,6 +100,7 @@ class MeetingAdapter(
             participantId = this.id.value,
             meeting = meeting,
             name = this.name,
+            hasVoted = this.hasVoted,
         )
         this.voteDates.forEach { voteDate ->
             participantEntity.voteDates.add(
@@ -129,6 +133,7 @@ class MeetingAdapter(
             val participantEntity = resolveParticipantEntity(participant, existingById)
 
             participantEntity.name = participant.name
+            participantEntity.hasVoted = participant.hasVoted
             updateVoteDates(participantEntity, participant.voteDates)
 
             if (participant.isNew() || participant.id.value !in remainingIds) {
@@ -158,6 +163,7 @@ class MeetingAdapter(
                 participantId = 0L,
                 meeting = this,
                 name = participant.name,
+                hasVoted = participant.hasVoted,
             )
         } else {
             existingById[participant.id.value]
@@ -165,6 +171,7 @@ class MeetingAdapter(
                     participantId = participant.id.value,
                     meeting = this,
                     name = participant.name,
+                    hasVoted = participant.hasVoted,
                 )
         }
     }

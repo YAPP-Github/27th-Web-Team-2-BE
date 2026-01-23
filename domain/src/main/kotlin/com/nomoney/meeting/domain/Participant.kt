@@ -9,4 +9,5 @@ data class Participant(
     val id: ParticipantId,
     val name: String,
     val voteDates: Set<LocalDate>,
+    val hasVoted: Boolean,
 )

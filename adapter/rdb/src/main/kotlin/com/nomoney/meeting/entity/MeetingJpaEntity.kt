@@ -18,6 +18,9 @@ class MeetingJpaEntity : BaseJpaEntity() {
     @Column(name = "title", nullable = false)
     lateinit var title: String
 
+    @Column(name = "host_name", nullable = true)
+    var hostName: String? = null
+
     @OneToMany(mappedBy = "meeting", cascade = [CascadeType.ALL], orphanRemoval = true)
     var dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf()
 
@@ -28,12 +31,14 @@ class MeetingJpaEntity : BaseJpaEntity() {
         fun of(
             meetId: String,
             title: String,
+            hostName: String?,
             dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf(),
             participants: MutableSet<ParticipantJpaEntity> = mutableSetOf(),
         ): MeetingJpaEntity {
             return MeetingJpaEntity().apply {
                 this.meetId = meetId
                 this.title = title
+                this.hostName = hostName
                 this.dates = dates
                 this.participants = participants
             }

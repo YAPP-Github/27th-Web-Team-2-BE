@@ -7,7 +7,6 @@ import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toResponse
-import com.nomoney.exception.DuplicateContentException
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
@@ -45,6 +44,7 @@ class MeetingVoteController(
     ): CreateMeetingResponse {
         val meeting = meetingService.createMeeting(
             title = request.title,
+            hostName = request.hostName,
             dates = request.dates.toSet(),
             maxParticipantCount = null,
         )
@@ -54,6 +54,7 @@ class MeetingVoteController(
             meetingId = meeting.id,
             name = request.hostName,
             voteDates = emptySet(),
+            hasVoted = false,
         )
 
         return CreateMeetingResponse(id = meeting.id)
@@ -78,12 +79,7 @@ class MeetingVoteController(
     fun createVote(
         @RequestBody request: VoteRequest,
     ): VoteResponse {
-        val isExist = meetingService.isExistName(request.meetingId, request.name)
-        if (isExist) {
-            throw DuplicateContentException("이미 존재하는 이름입니다.", "name: ${request.name}")
-        }
-
-        meetingService.addParticipant(
+        meetingService.submitVote(
             meetingId = request.meetingId,
             name = request.name,
             voteDates = request.voteDates.toSet(),
