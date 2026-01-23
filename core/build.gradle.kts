@@ -7,18 +7,16 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":adapter:rdb"))
+    api(project(":domain"))
+    implementation(project(":port"))
     implementation(project(":support:logging"))
     implementation(project(":support:yaml"))
-    implementation(project(":core"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
-
-    implementation(platform("io.awspring.cloud:spring-cloud-aws-dependencies:2.4.0"))
-    implementation("io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config")
 }
 
 tasks {
-    withType<Jar> { enabled = false }
-    withType<BootJar> { enabled = true }
+    withType<Jar> { enabled = true }
+    withType<BootJar> { enabled = false }
 }
