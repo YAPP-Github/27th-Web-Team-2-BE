@@ -19,7 +19,7 @@ class ParticipantJpaEntity : BaseJpaEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "participant_id", nullable = false)
-    var participantId: Long? = null
+    var participantId: Long = 0L
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meet_id", nullable = false)
@@ -33,7 +33,7 @@ class ParticipantJpaEntity : BaseJpaEntity() {
 
     companion object {
         fun of(
-            participantId: Long?,
+            participantId: Long = 0L,
             meeting: MeetingJpaEntity,
             name: String,
             voteDates: MutableSet<ParticipantVoteDateJpaEntity> = mutableSetOf(),
