@@ -4,10 +4,12 @@
 
     <root level="INFO">
         <appender-ref ref="CLOUD_WATCH_CONSOLE"/>
-        <appender-ref ref="API_FILE"/>
+        <appender-ref ref="CONSOLE_FILE"/>
     </root>
+
     <logger name="com.nomoney.support.logging.ApiLoggingFilter" level="INFO" additivity="false">
         <appender-ref ref="CLOUD_WATCH_TRANSACTION"/>
+        <appender-ref ref="API_FILE"/>
     </logger>
 
     <logger name="org.hibernate" level="ERROR"/>
