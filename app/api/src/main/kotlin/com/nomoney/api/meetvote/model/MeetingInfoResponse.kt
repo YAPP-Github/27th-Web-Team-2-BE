@@ -23,6 +23,9 @@ data class MeetingInfoResponse(
 
     @Schema(description = "투표에 참여한 참여자 정보")
     val participants: List<ParticipantResponse>,
+
+    @Schema(description = "모임을 만든 주최자 이름")
+    val hostName: String?,
 )
 
 data class ParticipantResponse(
@@ -38,6 +41,7 @@ fun Meeting.toResponse(): MeetingInfoResponse = MeetingInfoResponse(
     dates = this.dates.toList().sorted(),
     maxParticipantCount = this.maxParticipantCount,
     participants = this.participants.map { it.toResponse() },
+    hostName = this.hostName,
 )
 
 fun Participant.toResponse(): ParticipantResponse = ParticipantResponse(

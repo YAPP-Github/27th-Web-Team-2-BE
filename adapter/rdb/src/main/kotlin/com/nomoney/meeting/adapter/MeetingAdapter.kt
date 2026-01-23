@@ -27,6 +27,12 @@ class MeetingAdapter(
         return entity.toDomain()
     }
 
+    @Transactional(readOnly = true)
+    override fun findAll(): List<Meeting> {
+        return meetingJpaRepository.findAll()
+            .map { it.toDomain() }
+    }
+
     @Transactional
     override fun save(meeting: Meeting): Meeting {
         val existing = meetingJpaRepository.findByMeetIdWithParticipants(meeting.id.value)

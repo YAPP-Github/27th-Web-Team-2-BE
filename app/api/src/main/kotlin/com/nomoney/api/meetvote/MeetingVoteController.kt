@@ -4,9 +4,11 @@ import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
+import com.nomoney.api.meetvote.model.MeetingSummaryResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toResponse
+import com.nomoney.api.meetvote.model.toSummaryResponse
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
@@ -35,6 +37,13 @@ class MeetingVoteController(
     ): MeetingInfoResponse {
         val meeting = meetingService.getMeetingInfo(MeetingId(meetId))
         return meeting?.toResponse() ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: $meetId")
+    }
+
+    @Operation(summary = "모임 목록 조회", description = "모든 모임의 ID, 제목, 주최자를 조회합니다")
+    @GetMapping("/api/v1/meeting/list")
+    fun getMeetingList(): List<MeetingSummaryResponse> {
+        return meetingService.getAllMeetings()
+            .map { it.toSummaryResponse() }
     }
 
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성하고 고유 ID를 발급합니다")
