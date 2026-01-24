@@ -91,8 +91,9 @@ class MeetingService(
 
         assertAllowedVoteDates(meeting, voteDates)
 
-        val existingParticipant = meeting.participants.find { it.name == name }
-            ?: throw NotFoundException("참여자를 찾을 수 없습니다.", "name: $name")
+        if (meeting.participants.none { it.name == name }) {
+            throw NotFoundException("참여자를 찾을 수 없습니다.", "name: $name")
+        }
 
         val updatedParticipants = meeting.participants.map { participant ->
             if (participant.name == name) {
