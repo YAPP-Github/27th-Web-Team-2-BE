@@ -1,6 +1,6 @@
 -- Meeting 테이블
 CREATE TABLE IF NOT EXISTS meetings (
-    meet_id VARCHAR(10) PRIMARY KEY,
+    meet_id VARCHAR(16) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     host_name VARCHAR(100) NULL,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -11,7 +11,7 @@ CREATE INDEX IF NOT EXISTS idx_meetings_updated_at ON meetings(updated_at);
 
 -- Meeting 가능한 날짜들
 CREATE TABLE IF NOT EXISTS meeting_dates (
-    meet_id VARCHAR(10) NOT NULL,
+    meet_id VARCHAR(16) NOT NULL,
     available_date DATE NOT NULL,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_meeting_dates_updated_at ON meeting_dates(updated
 -- Participant 테이블
 CREATE TABLE IF NOT EXISTS participants (
     participant_id BIGSERIAL PRIMARY KEY,
-    meet_id VARCHAR(10) NOT NULL,
+    meet_id VARCHAR(16) NOT NULL,
     name VARCHAR(100) NOT NULL,
     has_voted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
