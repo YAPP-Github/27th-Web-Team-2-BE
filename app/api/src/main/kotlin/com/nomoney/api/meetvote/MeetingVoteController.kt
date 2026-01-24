@@ -79,7 +79,7 @@ class MeetingVoteController(
         @RequestParam
         name: String,
     ): IsExistNameResponse {
-        val isExist = meetingService.isExistName(MeetingId(meetId), name)
+        val isExist = meetingService.existsVotedParticipantByName(MeetingId(meetId), name)
         return IsExistNameResponse(isExist = isExist)
     }
 
