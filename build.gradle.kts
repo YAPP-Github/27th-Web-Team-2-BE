@@ -15,7 +15,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-group = "com.woossu"
+group = "com.nomoney"
 version = "0.0.1-SNAPSHOT"
 
 allprojects {
@@ -70,8 +70,9 @@ subprojects {
     dependencies {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.0")
 
-        testImplementation("io.kotest:kotest-runner-junit5:6.0.0.M1")
-        testImplementation("io.kotest:kotest-assertions-core:6.0.0.M1")
+        // build.gradle.kts
+        testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
+        testImplementation("io.kotest:kotest-assertions-core:5.9.1")
         testImplementation("io.mockk:mockk:1.13.12")
     }
 
