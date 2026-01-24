@@ -64,6 +64,7 @@ class MeetingAdapter(
             name = this.name,
             voteDates = this.voteDates.map { it.voteDate }.toSet(),
             hasVoted = this.hasVoted,
+            updatedAt = this.updatedAt,
         )
     }
 
