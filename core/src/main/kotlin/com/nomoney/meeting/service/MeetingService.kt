@@ -9,6 +9,7 @@ import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
 import java.security.SecureRandom
 import java.time.LocalDate
+import java.time.LocalDateTime
 import org.springframework.stereotype.Service
 
 @Service
@@ -37,6 +38,19 @@ class MeetingService(
 
     fun getMeetingInfo(meetingId: MeetingId): Meeting? {
         return meetingRepository.findByMeetingId(meetingId)
+    }
+
+    fun getMeetingInfoSortedByParticipantUpdatedAt(meetingId: MeetingId): Meeting? {
+        val meeting = meetingRepository.findByMeetingId(meetingId) ?: return null
+        if (meeting.participants.isEmpty()) {
+            return meeting
+        }
+
+        val sortedParticipants = meeting.participants.sortedWith(
+            compareByDescending<Participant> { it.updatedAt ?: LocalDateTime.MIN },
+        )
+
+        return meeting.copy(participants = sortedParticipants)
     }
 
     fun getAllMeetings(): List<Meeting> {
@@ -125,9 +139,11 @@ class MeetingService(
         }
     }
 
-    fun isExistName(meetingId: MeetingId, name: String): Boolean {
+    fun existsVotedParticipantByName(meetingId: MeetingId, name: String): Boolean {
         val meeting = getMeetingInfo(meetingId) ?: return false
-        return meeting.participants.any { it.name == name }
+        return meeting.participants.any { participant ->
+            participant.name == name && participant.hasVoted
+        }
     }
 
     fun generateMeetId(): MeetingId {
