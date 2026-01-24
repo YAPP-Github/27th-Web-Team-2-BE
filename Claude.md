@@ -5,27 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 프로젝트 소개
 Kotlin을 사용하는 Spring Boot 3.2 멀티모듈 프로젝트입니다. (JDK 17, Kotlin 1.9)
 
-## 빌드 및 실행 명령어
-```bash
-# 빌드
-./gradlew build
-
-# 린트 체크
-./gradlew ktlintCheck
-
-# 린트 자동 수정
-./gradlew ktlintFormat
-
-# 테스트 실행
-./gradlew test
-
-# 단일 테스트 실행
-./gradlew test --tests "com.nomoney.example.ExampleTest"
-
-# API 애플리케이션 실행
-./gradlew :app:api:bootRun
-```
-
 ## 모듈 구조 및 의존성 방향
 ```
 app:api → core → port ← adapter:rdb
