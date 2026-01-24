@@ -125,9 +125,11 @@ class MeetingService(
         }
     }
 
-    fun isExistName(meetingId: MeetingId, name: String): Boolean {
+    fun existsVotedParticipantByName(meetingId: MeetingId, name: String): Boolean {
         val meeting = getMeetingInfo(meetingId) ?: return false
-        return meeting.participants.any { it.name == name }
+        return meeting.participants.any { participant ->
+            participant.name == name && participant.hasVoted
+        }
     }
 
     fun generateMeetId(): MeetingId {
