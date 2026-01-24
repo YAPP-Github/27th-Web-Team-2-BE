@@ -35,7 +35,7 @@ class MeetingVoteController(
         @RequestParam
         meetId: String,
     ): MeetingInfoResponse {
-        val meeting = meetingService.getMeetingInfo(MeetingId(meetId))
+        val meeting = meetingService.getMeetingInfoSortedByParticipantUpdatedAt(MeetingId(meetId))
         return meeting?.toResponse() ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: $meetId")
     }
 
