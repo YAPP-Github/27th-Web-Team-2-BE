@@ -73,13 +73,13 @@ value class RefreshTokenId(val value: Long)
 - [x] Context 파일 생성
 
 ### Phase 2: Domain + Port + Entity
-- [ ] Domain 테스트 작성
-- [ ] RefreshToken 도메인 모델 구현
-- [ ] TokenPair 도메인 모델 구현
-- [ ] RefreshTokenRepository Port 인터페이스 정의
-- [ ] RefreshTokenJpaEntity 생성
-- [ ] RefreshTokenJpaRepository 인터페이스
-- [ ] DDL 스크립트 작성
+- [x] Domain 테스트 작성
+- [x] RefreshToken 도메인 모델 구현
+- [x] TokenPair 도메인 모델 구현
+- [x] RefreshTokenRepository Port 인터페이스 정의
+- [x] RefreshTokenJpaEntity 생성
+- [x] RefreshTokenJpaRepository 인터페이스
+- [x] DDL 스크립트 작성
 
 ### Phase 3: Adapter + Service
 - [ ] RefreshTokenAdapter 테스트 작성
@@ -102,17 +102,17 @@ value class RefreshTokenId(val value: Long)
 ## 생성/수정될 파일 목록
 
 ### Domain
-- [ ] `domain/src/main/kotlin/com/nomoney/auth/domain/RefreshToken.kt` (신규)
-- [ ] `domain/src/main/kotlin/com/nomoney/auth/domain/TokenPair.kt` (신규)
-- [ ] `domain/src/test/kotlin/com/nomoney/auth/domain/RefreshTokenTest.kt` (신규)
+- [x] `domain/src/main/kotlin/com/nomoney/auth/domain/RefreshToken.kt` (신규)
+- [x] `domain/src/main/kotlin/com/nomoney/auth/domain/TokenPair.kt` (신규)
+- [x] `domain/src/test/kotlin/com/nomoney/auth/domain/RefreshTokenTest.kt` (신규)
 
 ### Port
-- [ ] `port/src/main/kotlin/com/nomoney/auth/port/RefreshTokenRepository.kt` (신규)
+- [x] `port/src/main/kotlin/com/nomoney/auth/port/RefreshTokenRepository.kt` (신규)
 
 ### Entity
-- [ ] `adapter/rdb/src/main/kotlin/com/nomoney/auth/entity/RefreshTokenJpaEntity.kt` (신규)
-- [ ] `adapter/rdb/src/main/kotlin/com/nomoney/auth/repository/RefreshTokenJpaRepository.kt` (신규)
-- [ ] `adapter/rdb/src/main/resources/db/migration/` DDL 스크립트 (신규)
+- [x] `adapter/rdb/src/main/kotlin/com/nomoney/auth/entity/RefreshTokenJpaEntity.kt` (신규)
+- [x] `adapter/rdb/src/main/kotlin/com/nomoney/auth/repository/RefreshTokenJpaRepository.kt` (신규)
+- [x] `adapter/rdb/src/main/resources/sql.ddl/V4_CREATE_REFRESH_TOKENS.sql` DDL 스크립트 (신규)
 
 ### Adapter
 - [ ] `adapter/rdb/src/main/kotlin/com/nomoney/auth/adapter/RefreshTokenAdapter.kt` (신규)
