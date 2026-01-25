@@ -82,10 +82,10 @@ value class RefreshTokenId(val value: Long)
 - [x] DDL 스크립트 작성
 
 ### Phase 3: Adapter + Service
-- [ ] RefreshTokenAdapter 테스트 작성
-- [ ] RefreshTokenAdapter 구현
-- [ ] AuthService 테스트 수정/추가
-- [ ] AuthService 수정 (issueToken → issueTokenPair, refreshToken 메서드 추가)
+- [x] RefreshTokenAdapter 테스트 작성
+- [x] RefreshTokenAdapter 구현
+- [x] AuthService 테스트 수정/추가
+- [x] AuthService 수정 (issueToken → issueTokenPair, refreshToken 메서드 추가)
 
 ### Phase 4: Controller + DTO
 - [ ] IssueTokenResponse DTO 수정 (refreshToken 추가)
@@ -115,12 +115,12 @@ value class RefreshTokenId(val value: Long)
 - [x] `adapter/rdb/src/main/resources/sql.ddl/V4_CREATE_REFRESH_TOKENS.sql` DDL 스크립트 (신규)
 
 ### Adapter
-- [ ] `adapter/rdb/src/main/kotlin/com/nomoney/auth/adapter/RefreshTokenAdapter.kt` (신규)
-- [ ] `adapter/rdb/src/test/kotlin/com/nomoney/auth/adapter/RefreshTokenAdapterTest.kt` (신규)
+- [x] `adapter/rdb/src/main/kotlin/com/nomoney/auth/adapter/RefreshTokenAdapter.kt` (신규)
+- [x] `adapter/rdb/src/test/kotlin/com/nomoney/auth/adapter/RefreshTokenAdapterTest.kt` (신규)
 
 ### Service
-- [ ] `core/src/main/kotlin/com/nomoney/auth/service/AuthService.kt` (수정)
-- [ ] `core/src/test/kotlin/com/nomoney/auth/service/AuthServiceTest.kt` (수정/신규)
+- [x] `core/src/main/kotlin/com/nomoney/auth/service/AuthService.kt` (수정)
+- [x] `core/src/test/kotlin/com/nomoney/auth/service/AuthServiceTest.kt` (수정/신규)
 
 ### Controller
 - [ ] `app/api/src/main/kotlin/com/nomoney/api/auth/AuthController.kt` (수정)
