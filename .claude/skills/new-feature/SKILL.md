@@ -24,25 +24,17 @@ Phase 4: Controller + DTO
 ---
 
 
-## Phase 0. Phase 완료 시, 공통 작업
+## Phase 공통 규칙
 
-각 Phase가 완료 되면 아래 작업을 진행합니다.
+각 Phase가 완료되면 **빌드 확인 → 테스트 실행 → git commit** 순서로 작업합니다.
+자세한 커밋 메시지는 각 Phase의 "완료 후 작업" 섹션을 참조하세요.
 
-
-### 0.1 빌드 확인
+### Issue ID 추출
+커밋 메시지에 issue-id를 붙이기 위해 브랜치명에서 추출합니다:
 ```bash
-./gradlew build
+ISSUE_ID=$(git branch --show-current | sed -E 's/^[^/]+\///')
 ```
-
-### 0.2 전체 테스트 실행
-```bash
-./gradlew test
-```
-
-### 0.3 git commit
-```bash
-git commit -a -m "적절한 메시지"
-```
+브랜치명이 `feat/31-some-feature` 형태라면 `31-some-feature`가 추출됩니다.
 
 ---
 
@@ -61,6 +53,13 @@ Context 파일에 포함할 내용:
 - API 엔드포인트 목록
 - 비즈니스 규칙
 - 진행 상태 체크리스트
+
+### Phase 1 완료 후 작업
+Context 파일 생성이 완료되면 아래 작업을 실행합니다:
+```bash
+ISSUE_ID=$(git branch --show-current | sed -E 's/^[^/]+\///')
+git add -A && git commit -m "$ISSUE_ID feat: {feature} Context 문서 생성"
+```
 
 ---
 
@@ -98,6 +97,15 @@ JPA Entity를 생성해주세요.
 ```
 
 **Phase 2 완료 조건**: 두 Task 모두 완료
+
+### Phase 2 완료 후 작업
+두 Task가 완료되면 아래 작업을 순서대로 실행합니다:
+```bash
+./gradlew build
+./gradlew test
+ISSUE_ID=$(git branch --show-current | sed -E 's/^[^/]+\///')
+git add -A && git commit -m "$ISSUE_ID feat: {feature} Domain, Port, Entity 구현"
+```
 
 ---
 
@@ -137,6 +145,15 @@ Service를 구현해주세요.
 
 **Phase 3 완료 조건**: 두 Task 모두 완료
 
+### Phase 3 완료 후 작업
+두 Task가 완료되면 아래 작업을 순서대로 실행합니다:
+```bash
+./gradlew build
+./gradlew test
+ISSUE_ID=$(git branch --show-current | sed -E 's/^[^/]+\///')
+git add -A && git commit -m "$ISSUE_ID feat: {feature} Adapter, Service 구현"
+```
+
 ---
 
 ## Phase 4: Controller + DTO
@@ -154,6 +171,15 @@ Controller를 구현해주세요.
 3. Controller 구현 (Swagger 어노테이션 포함)
 4. 테스트 실행: ./gradlew :app:api:test
 5. Context 파일의 체크리스트 업데이트
+```
+
+### Phase 4 완료 후 작업
+Task가 완료되면 아래 작업을 순서대로 실행합니다:
+```bash
+./gradlew build
+./gradlew test
+ISSUE_ID=$(git branch --show-current | sed -E 's/^[^/]+\///')
+git add -A && git commit -m "$ISSUE_ID feat: {feature} Controller 구현"
 ```
 
 ---
