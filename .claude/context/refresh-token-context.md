@@ -88,10 +88,10 @@ value class RefreshTokenId(val value: Long)
 - [x] AuthService 수정 (issueToken → issueTokenPair, refreshToken 메서드 추가)
 
 ### Phase 4: Controller + DTO
-- [ ] IssueTokenResponse DTO 수정 (refreshToken 추가)
-- [ ] RefreshTokenRequest/Response DTO 정의
-- [ ] AuthController 테스트 수정/추가
-- [ ] AuthController 수정 (refresh 엔드포인트 추가)
+- [x] IssueTokenResponse DTO 수정 (refreshToken 추가)
+- [x] RefreshTokenRequest/Response DTO 정의
+- [x] AuthController 테스트 수정/추가
+- [x] AuthController 수정 (refresh 엔드포인트 추가)
 
 ### Phase 5: 완료
 - [ ] 전체 테스트 통과
@@ -123,9 +123,9 @@ value class RefreshTokenId(val value: Long)
 - [x] `core/src/test/kotlin/com/nomoney/auth/service/AuthServiceTest.kt` (수정/신규)
 
 ### Controller
-- [ ] `app/api/src/main/kotlin/com/nomoney/api/auth/AuthController.kt` (수정)
-- [ ] `app/api/src/main/kotlin/com/nomoney/api/auth/model/AuthHttp.kt` (수정)
-- [ ] `app/api/src/test/kotlin/com/nomoney/api/auth/AuthControllerTest.kt` (수정/신규)
+- [x] `app/api/src/main/kotlin/com/nomoney/api/auth/AuthController.kt` (수정)
+- [x] `app/api/src/main/kotlin/com/nomoney/api/auth/model/AuthHttp.kt` (수정)
+- [x] `app/api/src/test/kotlin/com/nomoney/api/auth/AuthControllerTest.kt` (수정/신규)
 
 ---
 
