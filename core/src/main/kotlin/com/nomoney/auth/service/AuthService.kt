@@ -8,6 +8,7 @@ import com.nomoney.auth.domain.User
 import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.port.AuthTokenRepository
 import com.nomoney.auth.port.RefreshTokenRepository
+import com.nomoney.exception.InvalidRefreshTokenException
 import com.nomoney.exception.UnauthorizedException
 import java.security.SecureRandom
 import java.time.LocalDateTime
@@ -47,14 +48,14 @@ class AuthService(
 
     fun refreshToken(refreshTokenValue: String): TokenPair {
         val existingRefreshToken = refreshTokenRepository.findByTokenValue(refreshTokenValue)
-            ?: throw UnauthorizedException("유효하지 않은 리프레시 토큰입니다. token: $refreshTokenValue")
+            ?: throw InvalidRefreshTokenException("유효하지 않은 리프레시 토큰입니다. token: $refreshTokenValue")
 
         if (existingRefreshToken.isExpired()) {
-            throw UnauthorizedException("리프레시 토큰이 만료되었습니다. expiresAt: ${existingRefreshToken.expiresAt}")
+            throw InvalidRefreshTokenException("리프레시 토큰이 만료되었습니다. expiresAt: ${existingRefreshToken.expiresAt}")
         }
 
         if (existingRefreshToken.used) {
-            throw UnauthorizedException("이미 사용된 리프레시 토큰입니다. token: $refreshTokenValue")
+            throw InvalidRefreshTokenException("이미 사용된 리프레시 토큰입니다. token: $refreshTokenValue")
         }
 
         refreshTokenRepository.markAsUsed(refreshTokenValue)
