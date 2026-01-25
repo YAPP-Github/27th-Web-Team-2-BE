@@ -29,7 +29,7 @@ class AuthTokenJpaEntity : BaseJpaEntity() {
 
     companion object {
         fun of(
-            tokenId: Long,
+            tokenId: Long = 0,
             tokenValue: String,
             userId: Long,
             expiresAt: LocalDateTime,
