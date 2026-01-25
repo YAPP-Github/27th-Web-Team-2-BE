@@ -11,5 +11,7 @@ sealed class NoMoneyException(
 
 sealed class ClientException(code: String, message: String, messageForDev: String? = null, cause: Throwable? = null) : NoMoneyException(code, message, messageForDev, cause)
 
+class UnauthorizedException(messageForDev: String? = null) : ClientException("Auth401", "인증을 실패했습니다.", messageForDev)
+
 class NotFoundException(message: String, messageForDev: String?) : ClientException("E001", message, messageForDev)
 class DuplicateContentException(message: String, messageForDev: String?) : ClientException("E002", message, messageForDev)
