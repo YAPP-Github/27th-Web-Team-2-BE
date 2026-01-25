@@ -184,6 +184,17 @@ git add -A && git commit -m "$ISSUE_ID feat: {feature} Controller 구현"
 
 ---
 
+## Phase 5: 마무리 작업
+
+### Task 1: context 파일 제거
+`.claude/context/{feature}-context.md` 파일을 제거합니다.
+
+```bash
+ISSUE_ID=$(git branch --show-current | sed -E 's/^[^/]+\///')
+git add -A && git commit -m "$ISSUE_ID feat: context 파일 제거"
+```
+---
+
 ## 참조 파일
 
 - 각 모듈 규칙: 해당 모듈의 `CLAUDE.md` 참조
