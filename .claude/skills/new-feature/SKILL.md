@@ -1,12 +1,12 @@
 ---
 name: new-feature
-description: TDD 기반으로 새로운 기능을 추가합니다. Sub Agent 병렬 실행으로 빠르게 구현합니다.
+description: 새로운 기능을 추가합니다. Sub Agent 병렬 실행으로 빠르게 구현합니다.
 argument-hint: "[feature name] [description]"
 ---
 
 # new-feature Skill
 
-새로운 기능을 TDD 기반으로 추가합니다.
+새로운 기능을 추가합니다.
 
 **기능명**: $ARGUMENTS
 
@@ -15,13 +15,33 @@ argument-hint: "[feature name] [description]"
 ```
 Phase 1: 요구사항 분석 & Context 생성
     ↓
-Phase 2: [병렬] Domain+Port(TDD) || Entity
+Phase 2: [병렬] Domain+Port || Entity
     ↓
-Phase 3: [병렬] Adapter(TDD) || Service(TDD)
+Phase 3: [병렬] Adapter || Service
     ↓
-Phase 4: Controller + DTO (TDD)
-    ↓
-Phase 5: 테스트 & 정리
+Phase 4: Controller + DTO
+```
+---
+
+
+## Phase 0. Phase 완료 시, 공통 작업
+
+각 Phase가 완료 되면 아래 작업을 진행합니다.
+
+
+### 0.1 빌드 확인
+```bash
+./gradlew build
+```
+
+### 0.2 전체 테스트 실행
+```bash
+./gradlew test
+```
+
+### 0.3 git commit
+```bash
+git commit -a -m "적절한 메시지"
 ```
 
 ---
@@ -48,13 +68,13 @@ Context 파일에 포함할 내용:
 
 **두 개의 Task를 동시에 실행합니다.**
 
-### Task 1: Domain + Port 생성 (TDD)
+### Task 1: Domain + Port 생성
 Task tool을 사용하여 general-purpose agent 실행:
 
 ```
 Context 파일 `.claude/context/{feature}-context.md`와
 프롬프트 `.claude/skills/new-feature/prompts/domain-port.md`를 참조하여
-Domain 모델과 Port 인터페이스를 TDD로 구현해주세요.
+Domain 모델과 Port 인터페이스를 구현해주세요.
 
 1. 테스트 먼저 작성 (domain/src/test/kotlin/...)
 2. Domain 모델 구현 (value class ID + data class)
@@ -85,13 +105,13 @@ JPA Entity를 생성해주세요.
 
 **두 개의 Task를 동시에 실행합니다.**
 
-### Task 3: Adapter 구현 (TDD)
+### Task 3: Adapter 구현
 Task tool을 사용하여 general-purpose agent 실행:
 
 ```
 Context 파일 `.claude/context/{feature}-context.md`와
 프롬프트 `.claude/skills/new-feature/prompts/adapter.md`를 참조하여
-Adapter를 TDD로 구현해주세요.
+Adapter를 구현해주세요.
 
 1. Adapter 테스트 작성
 2. Port 인터페이스 구현
@@ -100,13 +120,13 @@ Adapter를 TDD로 구현해주세요.
 5. Context 파일의 체크리스트 업데이트
 ```
 
-### Task 4: Service 구현 (TDD)
+### Task 4: Service 구현
 Task tool을 사용하여 general-purpose agent 실행:
 
 ```
 Context 파일 `.claude/context/{feature}-context.md`와
 프롬프트 `.claude/skills/new-feature/prompts/service.md`를 참조하여
-Service를 TDD로 구현해주세요.
+Service를 구현해주세요.
 
 1. Service 테스트 작성 (MockK로 Repository 모킹)
 2. Service 비즈니스 로직 구현
@@ -119,15 +139,15 @@ Service를 TDD로 구현해주세요.
 
 ---
 
-## Phase 4: Controller + DTO (TDD)
+## Phase 4: Controller + DTO
 
-### Task 5: Controller 구현 (TDD)
+### Task 5: Controller 구현
 Task tool을 사용하여 general-purpose agent 실행:
 
 ```
 Context 파일 `.claude/context/{feature}-context.md`와
 프롬프트 `.claude/skills/new-feature/prompts/controller.md`를 참조하여
-Controller를 TDD로 구현해주세요.
+Controller를 구현해주세요.
 
 1. Request/Response DTO 정의
 2. Controller 테스트 작성
@@ -135,26 +155,6 @@ Controller를 TDD로 구현해주세요.
 4. 테스트 실행: ./gradlew :app:api:test
 5. Context 파일의 체크리스트 업데이트
 ```
-
----
-
-## Phase 5: 테스트 & 정리
-
-### 5.1 전체 테스트 실행
-```bash
-./gradlew test
-```
-
-### 5.2 빌드 확인
-```bash
-./gradlew build
-```
-
-### 5.3 Context 파일 삭제
-테스트와 빌드가 성공하면 `.claude/context/{feature}-context.md` 파일을 삭제합니다.
-
-### 5.4 결과 요약
-생성된 파일 목록과 테스트 결과를 요약하여 보고합니다.
 
 ---
 
