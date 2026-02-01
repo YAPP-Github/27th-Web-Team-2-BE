@@ -1,6 +1,7 @@
 package com.nomoney.meeting.service
 
 import com.nomoney.exception.DuplicateContentException
+import com.nomoney.exception.InvalidRequestException
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
@@ -88,8 +89,11 @@ class MeetingService(
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
 
-        val existingParticipant = meeting.participants.find { it.name == name }
-            ?: throw NotFoundException("참여자를 찾을 수 없습니다.", "name: $name")
+        assertAllowedVoteDates(meeting, voteDates)
+
+        if (meeting.participants.none { it.name == name }) {
+            throw NotFoundException("참여자를 찾을 수 없습니다.", "name: $name")
+        }
 
         val updatedParticipants = meeting.participants.map { participant ->
             if (participant.name == name) {
@@ -114,6 +118,8 @@ class MeetingService(
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+
+        assertAllowedVoteDates(meeting, voteDates)
 
         val participant = meeting.participants.firstOrNull { it.name == name }
         return when {
@@ -153,5 +159,14 @@ class MeetingService(
             .joinToString("")
 
         return MeetingId(meetId)
+    }
+
+    private fun assertAllowedVoteDates(meeting: Meeting, voteDates: Set<LocalDate>) {
+        if (!meeting.isVoteDatesAllowed(voteDates)) {
+            throw InvalidRequestException(
+                "모임에서 선택 가능한 날짜가 아닙니다.",
+                "meetingId=${meeting.id.value}}",
+            )
+        }
     }
 }

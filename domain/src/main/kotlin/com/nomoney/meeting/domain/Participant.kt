@@ -11,5 +11,5 @@ data class Participant(
     val name: String,
     val voteDates: Set<LocalDate>,
     val hasVoted: Boolean,
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
 )

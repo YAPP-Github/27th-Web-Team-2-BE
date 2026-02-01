@@ -12,4 +12,8 @@ data class Meeting(
     val dates: Set<LocalDate>,
     val maxParticipantCount: Int?,
     val participants: List<Participant>,
-)
+) {
+    fun isVoteDatesAllowed(voteDates: Set<LocalDate>): Boolean {
+        return (voteDates - dates).isEmpty()
+    }
+}
