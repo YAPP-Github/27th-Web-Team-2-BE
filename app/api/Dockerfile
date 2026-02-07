@@ -34,6 +34,9 @@ RUN addgroup -S spring && adduser -S spring -G spring
 # Copy the built jar from build stage
 COPY --from=build /app/app/api/build/libs/*.jar app.jar
 
+# Chown spring:spring
+RUN mkdir -p /var/log/app && chown -R spring:spring /var/log/app
+
 # Change ownership to non-root user
 RUN chown -R spring:spring /app
 
