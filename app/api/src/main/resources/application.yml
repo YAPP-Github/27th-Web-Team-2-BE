@@ -19,7 +19,6 @@ management:
       application: ${spring.profiles.active:local}-nomoney-api
 
 sentry:
-  dsn: ${sentry.dsn:}
   environment: ${spring.profiles.active:local}
 
 ---
