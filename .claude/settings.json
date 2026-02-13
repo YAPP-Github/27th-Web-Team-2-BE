@@ -15,10 +15,8 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(./gradlew ktlintFormat:*)",
-      "Bash(./gradlew build:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(./gradlew *ktlintFormat:*)",
+      "Bash(./gradlew *build:*)"
     ]
   }
 }
