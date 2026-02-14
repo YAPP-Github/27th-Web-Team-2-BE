@@ -1,7 +1,5 @@
 package com.nomoney.exception
 
-import java.lang.RuntimeException
-
 sealed class NoMoneyException(
     val code: String,
     message: String,
@@ -16,3 +14,5 @@ class InvalidRefreshTokenException(messageForDev: String) : ClientException("E00
 
 class NotFoundException(message: String, messageForDev: String?) : ClientException("E001", message, messageForDev)
 class DuplicateContentException(message: String, messageForDev: String?) : ClientException("E002", message, messageForDev)
+class InvalidRequestException(message: String, messageForDev: String?, cause: Throwable? = null) :
+    ClientException("E003", message, messageForDev, cause)
