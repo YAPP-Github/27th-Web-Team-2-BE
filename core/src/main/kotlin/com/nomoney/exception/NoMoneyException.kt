@@ -16,3 +16,7 @@ class InvalidRefreshTokenException(messageForDev: String) : ClientException("E00
 
 class NotFoundException(message: String, messageForDev: String?) : ClientException("E001", message, messageForDev)
 class DuplicateContentException(message: String, messageForDev: String?) : ClientException("E002", message, messageForDev)
+
+class SocialAuthException(messageForDev: String) : ClientException("E004", "소셜 로그인에 실패했습니다.", messageForDev)
+class InvalidStateException(messageForDev: String) : ClientException("E005", "잘못된 요청입니다.", messageForDev)
+class UnsupportedSocialProviderException(messageForDev: String) : ClientException("E006", "지원하지 않는 소셜 로그인입니다.", messageForDev)
