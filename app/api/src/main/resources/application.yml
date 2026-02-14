@@ -1,6 +1,22 @@
+spring:
+    application:
+        name: ${spring.profiles.active:local}-nomoney-api
+
 aws:
   accessKey: ${AWS_ACCESS_KEY}
   secretKey: ${AWS_SECRET_KEY}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.profiles.active:local}-nomoney-api
 
 ---
 spring.config.activate.on-profile: local
