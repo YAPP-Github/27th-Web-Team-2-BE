@@ -7,6 +7,7 @@ port 모듈의 Repository 인터페이스 구현체입니다. JPA, QueryDSL, Pos
 - 모든 필드에 `@Column` 어노테이션 명시
 - 필드는 생성자가 아닌 프로퍼티로, 가급적 `lateinit var` 사용
 - companion object에 팩토리 메서드 `of()` 정의
+- @ID 프로퍼티는 primitive 타입을 사용
 
 ### Entity 템플릿
 ```kotlin
@@ -17,7 +18,7 @@ class {EntityName}JpaEntity : BaseJpaEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "{id_column}")
-    var id: Long? = null
+    var id: Long = 0
 
     @Column(name = "{column_name}")
     lateinit var fieldName: String
