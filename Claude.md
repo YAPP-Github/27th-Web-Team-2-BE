@@ -1,18 +1,36 @@
-# 프로젝트 소개
-Kotiln을 사용하는 Spring Boot 프로젝트 입니다.
+# CLAUDE.md
 
-# 모듈 구조
-## core
-전역적으로 사용하는 도메인 객체와 비지니스 로직을 처리하는 모듈
-## app
-외부에서 들어오는 요청을 처리하는 모듈. 현재는 HTTP 통신이 있습니다.
-Http 통신과 관련된 객체를 도메인 객체로 변경하여 core를 이용합니다.
-## port
-core에서 외부 컴포넌트를 호출하는 인터페이스 모듈입니다.
-port 는 Repository 접미어를 가집니다.
-## adaptor
-port의 구현체 입니다. 아래와 같은 요소들이 있습니다.
-- rdb
-- redis
-- kafka
-- web client
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 프로젝트 소개
+Kotlin을 사용하는 Spring Boot 3.2 멀티모듈 프로젝트입니다. (JDK 17, Kotlin 1.9)
+
+## 모듈 구조 및 의존성 방향
+```
+app:api → core → port ← adapter:rdb
+              ↓
+           domain
+```
+
+| 모듈 | 역할 |
+|------|------|
+| `app:api` | Controller, Request/Response, Swagger |
+| `core` | Service, 예외 정의 |
+| `domain` | 순수 도메인 객체 |
+| `port` | Repository 인터페이스 |
+| `adapter:rdb` | JPA Entity, QueryDSL |
+| `support:*` | 범용 유틸리티 |
+
+## 테스트 프레임워크
+- Kotest (kotest-runner-junit5, kotest-assertions-core)
+- MockK
+
+## Git 컨벤션
+**커밋 메시지**: `type: subject`
+- feat, fix, refactor, docs, test, chore, rename, style
+
+**브랜치 전략**:
+- `main`: 운영 서버
+- `develop`: 운영 배포 스탠바이 (default)
+- `feat/*`: 기능 개발 (Github Issue 번호)
+- `base/*`: 큰 기능 작업 시 완료된 PR을 모아두는 브랜치
