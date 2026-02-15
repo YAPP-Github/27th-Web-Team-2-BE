@@ -70,7 +70,7 @@ class MeetingVoteController(
             title = request.title,
             hostName = request.hostName,
             dates = request.dates.toSet(),
-            maxParticipantCount = null,
+            maxParticipantCount = request.maxParticipantCount,
         )
 
         // 주최자를 빈 투표 날짜로 participant에 추가

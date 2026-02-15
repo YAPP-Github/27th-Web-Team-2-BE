@@ -1,6 +1,7 @@
 package com.nomoney.api.meetvote
 
 import com.nomoney.api.meetvote.model.CloseMeetingRequest
+import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
@@ -14,6 +15,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.time.LocalDate
 
 class MeetingVoteControllerTest : DescribeSpec({
@@ -60,6 +62,52 @@ class MeetingVoteControllerTest : DescribeSpec({
 
                 response.status shouldBe MeetingStatus.CONFIRMED
                 response.finalizedDate shouldBe finalizedDate
+            }
+        }
+
+        describe("POST /api/v1/meeting") {
+            it("모임 생성 시 maxParticipantCount를 서비스로 전달한다") {
+                val meetingId = MeetingId("created-meeting")
+                val request = CreateMeetingRequest(
+                    title = "신규 모임",
+                    hostName = "주최자",
+                    maxParticipantCount = 5,
+                    dates = listOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                )
+                every {
+                    meetingService.createMeeting(
+                        title = request.title,
+                        hostName = request.hostName,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = request.maxParticipantCount,
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                )
+                every {
+                    meetingService.addParticipant(
+                        meetingId = meetingId,
+                        name = request.hostName,
+                        voteDates = emptySet(),
+                        hasVoted = false,
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                )
+
+                val response = controller.createMeeting(request)
+
+                response.id shouldBe meetingId
+                verify(exactly = 1) {
+                    meetingService.createMeeting(
+                        title = request.title,
+                        hostName = request.hostName,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = 5,
+                    )
+                }
             }
         }
 
