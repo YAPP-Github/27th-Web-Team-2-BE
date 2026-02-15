@@ -1,7 +1,11 @@
 package com.nomoney.api.meetvote
 
+import com.nomoney.api.meetvote.model.CloseMeetingRequest
+import com.nomoney.api.meetvote.model.CloseMeetingResponse
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
+import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
+import com.nomoney.api.meetvote.model.FinalizeMeetingResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
@@ -109,5 +113,31 @@ class MeetingVoteController(
         )
 
         return VoteResponse(success = true)
+    }
+
+    @Operation(summary = "모임 마감", description = "모임 상태를 투표중에서 마감 상태로 전환합니다.")
+    @PostMapping("/api/v1/meeting/close")
+    fun closeMeeting(
+        @RequestBody request: CloseMeetingRequest,
+    ): CloseMeetingResponse {
+        val meeting = meetingService.closeMeeting(request.meetingId)
+        return CloseMeetingResponse(status = meeting.status)
+    }
+
+    @Operation(
+        summary = "모임 확정",
+        description = "투표 결과를 바탕으로 최종 날짜를 확정하고 모임 상태를 확정으로 전환합니다. 공동 1위인 경우 finalizedDate를 함께 요청해야 합니다.",
+    )
+    @PostMapping("/api/v1/meeting/finalize")
+    fun finalizeMeeting(
+        @RequestBody request: FinalizeMeetingRequest,
+    ): FinalizeMeetingResponse {
+        val meeting = meetingService.finalizeMeeting(request.meetingId, request.finalizedDate)
+        return FinalizeMeetingResponse(
+            status = meeting.status,
+            finalizedDate = requireNotNull(meeting.finalizedDate) {
+                "CONFIRMED 상태의 모임에는 finalizedDate가 반드시 존재해야 합니다. meetingId=${meeting.id.value}"
+            },
+        )
     }
 }

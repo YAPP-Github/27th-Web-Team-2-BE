@@ -5,6 +5,7 @@ import com.nomoney.exception.InvalidRequestException
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
+import com.nomoney.meeting.domain.MeetingStatus
 import com.nomoney.meeting.domain.Participant
 import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
@@ -32,6 +33,8 @@ class MeetingService(
             dates = dates,
             maxParticipantCount = maxParticipantCount,
             participants = emptyList(),
+            status = MeetingStatus.VOTING,
+            finalizedDate = null,
         )
         return meetingRepository.save(meeting)
     }
@@ -151,6 +154,69 @@ class MeetingService(
         }
     }
 
+    fun closeMeeting(meetingId: MeetingId): Meeting {
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+
+        return when (meeting.status) {
+            MeetingStatus.VOTING -> {
+                meetingRepository.save(
+                    meeting.copy(
+                        status = MeetingStatus.CLOSED,
+                        finalizedDate = null,
+                    ),
+                )
+            }
+            MeetingStatus.CLOSED -> meeting
+            MeetingStatus.CONFIRMED -> throw InvalidRequestException(
+                "이미 확정된 모임은 마감할 수 없습니다.",
+                "meetingId=${meetingId.value}",
+            )
+        }
+    }
+
+    fun finalizeMeeting(
+        meetingId: MeetingId,
+        selectedDate: LocalDate?,
+    ): Meeting {
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+
+        if (meeting.status == MeetingStatus.CONFIRMED) {
+            return if (selectedDate == null || selectedDate == meeting.finalizedDate) {
+                meeting
+            } else {
+                throw InvalidRequestException(
+                    "이미 다른 날짜로 확정된 모임입니다.",
+                    "meetingId=${meetingId.value}, finalizedDate=${meeting.finalizedDate}",
+                )
+            }
+        }
+
+        if (meeting.dates.isEmpty()) {
+            throw InvalidRequestException(
+                "후보 날짜가 없는 모임은 확정할 수 없습니다.",
+                "meetingId=${meetingId.value}",
+            )
+        }
+
+        if (selectedDate != null && selectedDate !in meeting.dates) {
+            throw InvalidRequestException(
+                "모임 후보 날짜에 없는 값은 확정일로 선택할 수 없습니다.",
+                "meetingId=${meetingId.value}, selectedDate=$selectedDate",
+            )
+        }
+
+        val resolvedFinalizedDate = resolveFinalizedDate(meeting, selectedDate)
+
+        return meetingRepository.save(
+            meeting.copy(
+                status = MeetingStatus.CONFIRMED,
+                finalizedDate = resolvedFinalizedDate,
+            ),
+        )
+    }
+
     fun generateMeetId(): MeetingId {
         val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         val meetId = (1..12)
@@ -167,5 +233,52 @@ class MeetingService(
                 "meetingId=${meeting.id.value}}",
             )
         }
+    }
+
+    private fun resolveFinalizedDate(
+        meeting: Meeting,
+        selectedDate: LocalDate?,
+    ): LocalDate {
+        val topDates = topVotedDates(meeting)
+        return when {
+            topDates.size == 1 -> {
+                val topDate = topDates.first()
+                if (selectedDate != null && selectedDate != topDate) {
+                    throw InvalidRequestException(
+                        "최다 득표 날짜와 다른 날짜를 확정일로 선택할 수 없습니다.",
+                        "meetingId=${meeting.id.value}, selectedDate=$selectedDate, expected=$topDate",
+                    )
+                }
+                selectedDate ?: topDate
+            }
+            selectedDate == null -> throw InvalidRequestException(
+                "공동 1위 날짜가 있어 확정일 선택이 필요합니다.",
+                "meetingId=${meeting.id.value}, candidateDates=${topDates.sorted()}",
+            )
+            selectedDate !in topDates -> throw InvalidRequestException(
+                "공동 1위 날짜 중에서 확정일을 선택해야 합니다.",
+                "meetingId=${meeting.id.value}, selectedDate=$selectedDate, candidateDates=${topDates.sorted()}",
+            )
+            else -> selectedDate
+        }
+    }
+
+    private fun topVotedDates(meeting: Meeting): Set<LocalDate> {
+        val voteCounts = meeting.dates.associateWith { 0 }.toMutableMap()
+
+        meeting.participants
+            .filter { it.hasVoted }
+            .forEach { participant ->
+                participant.voteDates
+                    .filter { it in voteCounts }
+                    .forEach { voteDate ->
+                        voteCounts[voteDate] = voteCounts.getValue(voteDate) + 1
+                    }
+            }
+
+        val maxCount = voteCounts.maxOfOrNull { it.value } ?: 0
+        return voteCounts
+            .filterValues { it == maxCount }
+            .keys
     }
 }

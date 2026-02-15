@@ -55,6 +55,8 @@ class MeetingAdapter(
             dates = this.dates.map { it.availableDate }.toSet(),
             maxParticipantCount = null,
             participants = this.participants.map { it.toDomain() },
+            status = this.status,
+            finalizedDate = this.finalizedDate,
         )
     }
 
@@ -73,6 +75,8 @@ class MeetingAdapter(
             meetId = this.id.value,
             title = this.title,
             hostName = this.hostName,
+            status = this.status,
+            finalizedDate = this.finalizedDate,
         )
 
         meetingEntity.addMeetingDates(this.dates)
@@ -122,6 +126,8 @@ class MeetingAdapter(
 
     private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
         this.title = meeting.title
+        this.status = meeting.status
+        this.finalizedDate = meeting.finalizedDate
         this.updateParticipants(meeting.participants)
     }
 

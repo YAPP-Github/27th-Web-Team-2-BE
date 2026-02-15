@@ -5,6 +5,12 @@ import java.time.LocalDate
 @JvmInline
 value class MeetingId(val value: String)
 
+enum class MeetingStatus {
+    VOTING,
+    CLOSED,
+    CONFIRMED,
+}
+
 data class Meeting(
     val id: MeetingId,
     val title: String,
@@ -12,6 +18,8 @@ data class Meeting(
     val dates: Set<LocalDate>,
     val maxParticipantCount: Int?,
     val participants: List<Participant>,
+    val status: MeetingStatus = MeetingStatus.VOTING,
+    val finalizedDate: LocalDate? = null,
 ) {
     fun isVoteDatesAllowed(voteDates: Set<LocalDate>): Boolean {
         return (voteDates - dates).isEmpty()
