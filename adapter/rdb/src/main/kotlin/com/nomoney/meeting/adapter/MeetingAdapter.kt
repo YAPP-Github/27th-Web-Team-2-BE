@@ -130,7 +130,22 @@ class MeetingAdapter(
         this.maxParticipantCount = meeting.maxParticipantCount
         this.status = meeting.status
         this.finalizedDate = meeting.finalizedDate
+        this.updateMeetingDates(meeting.dates)
         this.updateParticipants(meeting.participants)
+    }
+
+    private fun MeetingJpaEntity.updateMeetingDates(dates: Set<LocalDate>) {
+        this.dates.removeIf { it.availableDate !in dates }
+        val existingDates = this.dates.map { it.availableDate }.toSet()
+        val datesToAdd = dates - existingDates
+        datesToAdd.forEach { date ->
+            this.dates.add(
+                MeetingDateJpaEntity.of(
+                    meeting = this,
+                    availableDate = date,
+                ),
+            )
+        }
     }
 
     private fun MeetingJpaEntity.updateParticipants(participants: List<Participant>) {

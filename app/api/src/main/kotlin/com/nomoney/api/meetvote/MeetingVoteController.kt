@@ -10,10 +10,13 @@ import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingDashboardResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
+import com.nomoney.api.meetvote.model.UpdateMeetingRequest
+import com.nomoney.api.meetvote.model.UpdateMeetingResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toResponse
 import com.nomoney.api.meetvote.model.toSummaryResponse
+import com.nomoney.api.meetvote.model.toUpdateResponse
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
@@ -82,6 +85,21 @@ class MeetingVoteController(
         )
 
         return CreateMeetingResponse(id = meeting.id)
+    }
+
+    @Operation(summary = "모임 수정", description = "모임 제목, 최대 인원, 후보 날짜, 삭제할 참여자를 반영해 모임을 수정합니다.")
+    @PutMapping("/api/v1/meeting")
+    fun updateMeeting(
+        @RequestBody request: UpdateMeetingRequest,
+    ): UpdateMeetingResponse {
+        val meeting = meetingService.updateMeeting(
+            meetingId = request.meetingId,
+            title = request.title,
+            dates = request.dates.toSet(),
+            maxParticipantCount = request.maxParticipantCount,
+            removedParticipantNames = request.removedParticipantNames.toSet(),
+        )
+        return meeting.toUpdateResponse()
     }
 
     @Operation(summary = "참여자 이름 중복 확인", description = "모임에 동일한 이름의 참여자가 있는지 확인합니다")

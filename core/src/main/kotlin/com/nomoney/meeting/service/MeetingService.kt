@@ -63,6 +63,53 @@ class MeetingService(
         return meetingRepository.findAll()
     }
 
+    fun updateMeeting(
+        meetingId: MeetingId,
+        title: String,
+        dates: Set<LocalDate>,
+        maxParticipantCount: Int?,
+        removedParticipantNames: Set<String>,
+    ): Meeting {
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+
+        if (meeting.status != MeetingStatus.VOTING) {
+            throw InvalidRequestException(
+                "투표중인 모임만 수정할 수 있습니다.",
+                "meetingId=${meetingId.value}, status=${meeting.status}",
+            )
+        }
+
+        assertValidMaxParticipantCount(maxParticipantCount)
+        assertNotEmptyDates(meetingId, dates)
+        assertRemovableParticipants(meeting, removedParticipantNames)
+
+        val remainingParticipants = meeting.participants
+            .filterNot { it.name in removedParticipantNames }
+
+        assertVoteDatesWithinCandidates(
+            meetingId = meetingId,
+            participants = remainingParticipants,
+            dates = dates,
+        )
+
+        if (maxParticipantCount != null && maxParticipantCount < remainingParticipants.size) {
+            throw InvalidRequestException(
+                "최대 참여 인원은 현재 참여자 수보다 작을 수 없습니다.",
+                "meetingId=${meetingId.value}, maxParticipantCount=$maxParticipantCount, participants=${remainingParticipants.size}",
+            )
+        }
+
+        return meetingRepository.save(
+            meeting.copy(
+                title = title,
+                dates = dates,
+                maxParticipantCount = maxParticipantCount,
+                participants = remainingParticipants,
+            ),
+        )
+    }
+
     fun getHostMeetingDashboard(
         hostName: String,
         today: LocalDate = LocalDate.now(),
@@ -304,12 +351,76 @@ class MeetingService(
         }
     }
 
+    private fun assertNotEmptyDates(
+        meetingId: MeetingId,
+        dates: Set<LocalDate>,
+    ) {
+        if (dates.isEmpty()) {
+            throw InvalidRequestException(
+                "후보 날짜는 1개 이상이어야 합니다.",
+                "meetingId=${meetingId.value}",
+            )
+        }
+    }
+
     private fun assertAvailableParticipantCapacity(meeting: Meeting) {
         val maxParticipantCount = meeting.maxParticipantCount ?: return
         if (meeting.participants.size >= maxParticipantCount) {
             throw InvalidRequestException(
                 "최대 참여 인원을 초과할 수 없습니다.",
                 "meetingId=${meeting.id.value}, maxParticipantCount=$maxParticipantCount, currentParticipants=${meeting.participants.size}",
+            )
+        }
+    }
+
+    private fun assertRemovableParticipants(
+        meeting: Meeting,
+        removedParticipantNames: Set<String>,
+    ) {
+        if (removedParticipantNames.isEmpty()) {
+            return
+        }
+
+        val participantsByName = meeting.participants.associateBy { it.name }
+        val unknownNames = removedParticipantNames.filterNot { it in participantsByName.keys }
+        if (unknownNames.isNotEmpty()) {
+            throw InvalidRequestException(
+                "존재하지 않는 참여자는 삭제할 수 없습니다.",
+                "meetingId=${meeting.id.value}, unknownNames=$unknownNames",
+            )
+        }
+
+        if (meeting.hostName != null && meeting.hostName in removedParticipantNames) {
+            throw InvalidRequestException(
+                "주최자는 삭제할 수 없습니다.",
+                "meetingId=${meeting.id.value}, hostName=${meeting.hostName}",
+            )
+        }
+
+        val votedParticipantNames = removedParticipantNames.filter { name ->
+            participantsByName.getValue(name).hasVoted
+        }
+        if (votedParticipantNames.isNotEmpty()) {
+            throw InvalidRequestException(
+                "이미 투표한 참여자는 삭제할 수 없습니다.",
+                "meetingId=${meeting.id.value}, votedParticipantNames=$votedParticipantNames",
+            )
+        }
+    }
+
+    private fun assertVoteDatesWithinCandidates(
+        meetingId: MeetingId,
+        participants: List<Participant>,
+        dates: Set<LocalDate>,
+    ) {
+        val invalidParticipants = participants
+            .filter { participant -> (participant.voteDates - dates).isNotEmpty() }
+            .map { it.name }
+
+        if (invalidParticipants.isNotEmpty()) {
+            throw InvalidRequestException(
+                "기존 투표 데이터와 충돌하는 후보 날짜 변경입니다.",
+                "meetingId=${meetingId.value}, invalidParticipants=$invalidParticipants",
             )
         }
     }
