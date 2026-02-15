@@ -340,6 +340,137 @@ class MeetingServiceTest : DescribeSpec({
                 verify(exactly = 1) { meetingRepository.save(any()) }
             }
         }
+
+        describe("updateMeeting") {
+            it("투표중 모임의 제목/인원/후보날짜를 수정하고 참여자를 삭제할 수 있다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("update-meeting"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                    participants = listOf(
+                        Participant(
+                            id = ParticipantId(1L),
+                            name = "주최자",
+                            voteDates = setOf(LocalDate.of(2026, 2, 20)),
+                            hasVoted = true,
+                        ),
+                        Participant(
+                            id = ParticipantId(2L),
+                            name = "삭제대상",
+                            voteDates = emptySet(),
+                            hasVoted = false,
+                        ),
+                    ),
+                ).copy(hostName = "주최자", maxParticipantCount = 5)
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                every { meetingRepository.save(any()) } answers { firstArg() }
+
+                val result = meetingService.updateMeeting(
+                    meetingId = meeting.id,
+                    title = "수정된 모임명",
+                    dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 22)),
+                    maxParticipantCount = 3,
+                    removedParticipantNames = setOf("삭제대상"),
+                )
+
+                result.title shouldBe "수정된 모임명"
+                result.maxParticipantCount shouldBe 3
+                result.dates shouldBe setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 22))
+                result.participants.map { it.name } shouldBe listOf("주최자")
+                verify(exactly = 1) { meetingRepository.save(any()) }
+            }
+
+            it("투표중이 아닌 모임은 수정할 수 없다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("closed-meeting"),
+                    status = MeetingStatus.CLOSED,
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<InvalidRequestException> {
+                    meetingService.updateMeeting(
+                        meetingId = meeting.id,
+                        title = "수정시도",
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        maxParticipantCount = 3,
+                        removedParticipantNames = emptySet(),
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+
+            it("이미 투표한 참여자는 삭제할 수 없다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("meeting-1"),
+                    status = MeetingStatus.VOTING,
+                    participants = listOf(
+                        fixtureParticipant(id = 1L, name = "투표완료", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                    ),
+                ).copy(hostName = "다른주최자")
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<InvalidRequestException> {
+                    meetingService.updateMeeting(
+                        meetingId = meeting.id,
+                        title = "수정시도",
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        maxParticipantCount = 2,
+                        removedParticipantNames = setOf("투표완료"),
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+
+            it("기존 투표가 있는 날짜는 후보 날짜에서 제거할 수 없다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("meeting-2"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                    participants = listOf(
+                        fixtureParticipant(id = 1L, name = "참여자", voteDates = setOf(LocalDate.of(2026, 2, 21))),
+                    ),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<InvalidRequestException> {
+                    meetingService.updateMeeting(
+                        meetingId = meeting.id,
+                        title = "수정시도",
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        maxParticipantCount = 2,
+                        removedParticipantNames = emptySet(),
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+
+            it("최대 인원을 현재 참여자 수보다 작게 줄일 수 없다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("meeting-3"),
+                    status = MeetingStatus.VOTING,
+                    participants = listOf(
+                        Participant(id = ParticipantId(1L), name = "A", voteDates = emptySet(), hasVoted = false),
+                        Participant(id = ParticipantId(2L), name = "B", voteDates = emptySet(), hasVoted = false),
+                    ),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<InvalidRequestException> {
+                    meetingService.updateMeeting(
+                        meetingId = meeting.id,
+                        title = "수정시도",
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        maxParticipantCount = 1,
+                        removedParticipantNames = emptySet(),
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+        }
     }
 },)
 

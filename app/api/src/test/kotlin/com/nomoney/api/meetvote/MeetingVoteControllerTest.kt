@@ -3,6 +3,7 @@ package com.nomoney.api.meetvote
 import com.nomoney.api.meetvote.model.CloseMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
+import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -144,6 +145,42 @@ class MeetingVoteControllerTest : DescribeSpec({
                 response.summary.votingCount shouldBe 1
                 response.inProgressMeetings.size shouldBe 1
                 response.inProgressMeetings.first().meetingId shouldBe MeetingId("meeting-a")
+            }
+        }
+
+        describe("PUT /api/v1/meeting") {
+            it("모임 수정 요청을 서비스로 위임하고 수정 결과를 반환한다") {
+                val meetingId = MeetingId("meeting-to-update")
+                val request = UpdateMeetingRequest(
+                    meetingId = meetingId,
+                    title = "수정된 모임",
+                    maxParticipantCount = 4,
+                    dates = listOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                    removedParticipantNames = listOf("삭제대상"),
+                )
+                every {
+                    meetingService.updateMeeting(
+                        meetingId = request.meetingId,
+                        title = request.title,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = request.maxParticipantCount,
+                        removedParticipantNames = request.removedParticipantNames.toSet(),
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                ).copy(
+                    title = "수정된 모임",
+                    maxParticipantCount = 4,
+                    dates = request.dates.toSet(),
+                )
+
+                val response = controller.updateMeeting(request)
+
+                response.meetingId shouldBe meetingId
+                response.title shouldBe "수정된 모임"
+                response.maxParticipantCount shouldBe 4
+                response.dates shouldBe request.dates
             }
         }
     }
