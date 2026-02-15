@@ -11,6 +11,7 @@ import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
 import java.security.SecureRandom
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import org.springframework.stereotype.Service
 
 @Service
@@ -58,6 +59,61 @@ class MeetingService(
 
     fun getAllMeetings(): List<Meeting> {
         return meetingRepository.findAll()
+    }
+
+    fun getHostMeetingDashboard(
+        hostName: String,
+        today: LocalDate = LocalDate.now(),
+    ): MeetingDashboard {
+        val meetings = meetingRepository.findAll()
+            .filter { it.hostName == hostName }
+
+        val dashboardCards = meetings.map { meeting ->
+            val topDates = topVotedDates(meeting)
+            val leadingDate = topDates.minOrNull()
+            val referenceDate = if (meeting.status == MeetingStatus.CONFIRMED) {
+                meeting.finalizedDate
+            } else {
+                leadingDate
+            }
+
+            val completedVoteCount = meeting.participants.count { it.hasVoted }
+            val totalVoteCount = (meeting.maxParticipantCount ?: meeting.participants.size)
+                .coerceAtLeast(completedVoteCount)
+            val voteProgressPercent = if (totalVoteCount == 0) {
+                0
+            } else {
+                (completedVoteCount * 100) / totalVoteCount
+            }
+
+            MeetingDashboardCard(
+                meetingId = meeting.id,
+                title = meeting.title,
+                status = meeting.status,
+                leadingDate = leadingDate,
+                isLeadingDateTied = topDates.size > 1,
+                finalizedDate = meeting.finalizedDate,
+                dDay = referenceDate?.let { ChronoUnit.DAYS.between(today, it).toInt() },
+                completedVoteCount = completedVoteCount,
+                totalVoteCount = totalVoteCount,
+                voteProgressPercent = voteProgressPercent,
+            )
+        }
+
+        return MeetingDashboard(
+            hostName = hostName,
+            summary = MeetingDashboardSummary(
+                votingCount = meetings.count { it.status == MeetingStatus.VOTING },
+                closedCount = meetings.count { it.status == MeetingStatus.CLOSED },
+                confirmedCount = meetings.count { it.status == MeetingStatus.CONFIRMED },
+            ),
+            inProgressMeetings = dashboardCards
+                .filter { it.status != MeetingStatus.CONFIRMED }
+                .sortedWith(compareBy<MeetingDashboardCard> { it.dDay == null }.thenBy { it.dDay }),
+            confirmedMeetings = dashboardCards
+                .filter { it.status == MeetingStatus.CONFIRMED }
+                .sortedWith(compareBy<MeetingDashboardCard> { it.dDay == null }.thenBy { it.dDay }),
+        )
     }
 
     fun addParticipant(

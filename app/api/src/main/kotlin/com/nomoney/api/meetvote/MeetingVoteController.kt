@@ -7,6 +7,7 @@ import com.nomoney.api.meetvote.model.CreateMeetingResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
+import com.nomoney.api.meetvote.model.MeetingDashboardResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
 import com.nomoney.api.meetvote.model.VoteRequest
@@ -48,6 +49,16 @@ class MeetingVoteController(
     fun getMeetingList(): List<MeetingSummaryResponse> {
         return meetingService.getAllMeetings()
             .map { it.toSummaryResponse() }
+    }
+
+    @Operation(summary = "주최자 대시보드 조회", description = "주최자 기준 진행중/확정 모임 목록과 요약 정보를 조회합니다.")
+    @GetMapping("/api/v1/meeting/dashboard")
+    fun getMeetingDashboard(
+        @Parameter(description = "주최자 이름", required = true, example = "이파이")
+        @RequestParam
+        hostName: String,
+    ): MeetingDashboardResponse {
+        return meetingService.getHostMeetingDashboard(hostName).toResponse()
     }
 
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성하고 고유 ID를 발급합니다")
