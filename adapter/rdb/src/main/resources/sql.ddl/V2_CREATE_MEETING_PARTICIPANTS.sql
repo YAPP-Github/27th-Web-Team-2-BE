@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS meetings (
     meet_id VARCHAR(16) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     host_name VARCHAR(100) NULL,
+    max_participant_count INTEGER NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'VOTING',
     finalized_date DATE NULL,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,

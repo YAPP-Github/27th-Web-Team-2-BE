@@ -25,6 +25,9 @@ class MeetingJpaEntity : BaseJpaEntity() {
     @Column(name = "host_name", nullable = true)
     var hostName: String? = null
 
+    @Column(name = "max_participant_count", nullable = true)
+    var maxParticipantCount: Int? = null
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
     var status: MeetingStatus = MeetingStatus.VOTING
@@ -43,6 +46,7 @@ class MeetingJpaEntity : BaseJpaEntity() {
             meetId: String,
             title: String,
             hostName: String?,
+            maxParticipantCount: Int? = null,
             status: MeetingStatus = MeetingStatus.VOTING,
             finalizedDate: LocalDate? = null,
             dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf(),
@@ -52,6 +56,7 @@ class MeetingJpaEntity : BaseJpaEntity() {
                 this.meetId = meetId
                 this.title = title
                 this.hostName = hostName
+                this.maxParticipantCount = maxParticipantCount
                 this.status = status
                 this.finalizedDate = finalizedDate
                 this.dates = dates

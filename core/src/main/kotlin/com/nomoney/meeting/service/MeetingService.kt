@@ -26,6 +26,8 @@ class MeetingService(
         dates: Set<LocalDate>,
         maxParticipantCount: Int? = null,
     ): Meeting {
+        assertValidMaxParticipantCount(maxParticipantCount)
+
         val meetingId = generateMeetId()
         val meeting = Meeting(
             id = meetingId,
@@ -124,6 +126,8 @@ class MeetingService(
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+
+        assertAvailableParticipantCapacity(meeting)
 
         val newParticipant = Participant(
             id = ParticipantId(0L),
@@ -287,6 +291,25 @@ class MeetingService(
             throw InvalidRequestException(
                 "모임에서 선택 가능한 날짜가 아닙니다.",
                 "meetingId=${meeting.id.value}}",
+            )
+        }
+    }
+
+    private fun assertValidMaxParticipantCount(maxParticipantCount: Int?) {
+        if (maxParticipantCount != null && maxParticipantCount < 1) {
+            throw InvalidRequestException(
+                "최대 참여 인원은 1 이상이어야 합니다.",
+                "maxParticipantCount=$maxParticipantCount",
+            )
+        }
+    }
+
+    private fun assertAvailableParticipantCapacity(meeting: Meeting) {
+        val maxParticipantCount = meeting.maxParticipantCount ?: return
+        if (meeting.participants.size >= maxParticipantCount) {
+            throw InvalidRequestException(
+                "최대 참여 인원을 초과할 수 없습니다.",
+                "meetingId=${meeting.id.value}, maxParticipantCount=$maxParticipantCount, currentParticipants=${meeting.participants.size}",
             )
         }
     }

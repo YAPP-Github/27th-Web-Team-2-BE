@@ -26,6 +26,20 @@ class MeetingServiceTest : DescribeSpec({
     }
 
     describe("MeetingService") {
+        describe("createMeeting") {
+            it("maxParticipantCount가 1 미만이면 예외가 발생한다") {
+                shouldThrow<InvalidRequestException> {
+                    meetingService.createMeeting(
+                        title = "테스트 모임",
+                        hostName = "주최자",
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        maxParticipantCount = 0,
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+        }
 
         describe("closeMeeting") {
             it("VOTING 상태 모임은 CLOSED로 전환된다") {
@@ -275,11 +289,63 @@ class MeetingServiceTest : DescribeSpec({
                 confirmedCard.dDay shouldBe 3
             }
         }
+
+        describe("submitVote") {
+            it("최대 참여 인원에 도달한 상태에서 신규 참여자가 투표하면 예외가 발생한다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("capacity-meeting"),
+                    dates = setOf(LocalDate.of(2026, 2, 20)),
+                    participants = listOf(
+                        fixtureParticipant(id = 1L, name = "기존1", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                        fixtureParticipant(id = 2L, name = "기존2", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                    ),
+                ).copy(maxParticipantCount = 2)
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<InvalidRequestException> {
+                    meetingService.submitVote(
+                        meetingId = meeting.id,
+                        name = "신규참여자",
+                        voteDates = setOf(LocalDate.of(2026, 2, 20)),
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+
+            it("최대 참여 인원에 도달해도 기존 참여자의 투표 수정은 가능하다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("capacity-meeting"),
+                    hostName = "주최자",
+                    dates = setOf(LocalDate.of(2026, 2, 20)),
+                    participants = listOf(
+                        Participant(
+                            id = ParticipantId(1L),
+                            name = "주최자",
+                            voteDates = emptySet(),
+                            hasVoted = false,
+                        ),
+                    ),
+                ).copy(maxParticipantCount = 1)
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                every { meetingRepository.save(any()) } answers { firstArg() }
+
+                val result = meetingService.submitVote(
+                    meetingId = meeting.id,
+                    name = "주최자",
+                    voteDates = setOf(LocalDate.of(2026, 2, 20)),
+                )
+
+                result.participants.single().hasVoted shouldBe true
+                verify(exactly = 1) { meetingRepository.save(any()) }
+            }
+        }
     }
 },)
 
 private fun fixtureMeeting(
     id: MeetingId = MeetingId("meeting-1"),
+    hostName: String = "주최자",
     status: MeetingStatus = MeetingStatus.VOTING,
     finalizedDate: LocalDate? = null,
     dates: Set<LocalDate> = setOf(LocalDate.of(2026, 2, 20)),
@@ -288,7 +354,7 @@ private fun fixtureMeeting(
     return Meeting(
         id = id,
         title = "테스트 모임",
-        hostName = "주최자",
+        hostName = hostName,
         dates = dates,
         maxParticipantCount = null,
         participants = participants,
