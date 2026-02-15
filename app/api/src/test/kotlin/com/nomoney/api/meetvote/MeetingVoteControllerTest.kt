@@ -5,6 +5,9 @@ import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
+import com.nomoney.meeting.service.MeetingDashboard
+import com.nomoney.meeting.service.MeetingDashboardCard
+import com.nomoney.meeting.service.MeetingDashboardSummary
 import com.nomoney.meeting.service.MeetingService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -57,6 +60,42 @@ class MeetingVoteControllerTest : DescribeSpec({
 
                 response.status shouldBe MeetingStatus.CONFIRMED
                 response.finalizedDate shouldBe finalizedDate
+            }
+        }
+
+        describe("GET /api/v1/meeting/dashboard") {
+            it("주최자 이름으로 대시보드를 조회한다") {
+                val hostName = "이파이"
+                every { meetingService.getHostMeetingDashboard(hostName) } returns MeetingDashboard(
+                    hostName = hostName,
+                    summary = MeetingDashboardSummary(
+                        votingCount = 1,
+                        closedCount = 0,
+                        confirmedCount = 1,
+                    ),
+                    inProgressMeetings = listOf(
+                        MeetingDashboardCard(
+                            meetingId = MeetingId("meeting-a"),
+                            title = "진행중 모임",
+                            status = MeetingStatus.VOTING,
+                            leadingDate = LocalDate.of(2026, 2, 20),
+                            isLeadingDateTied = false,
+                            finalizedDate = null,
+                            dDay = 5,
+                            completedVoteCount = 2,
+                            totalVoteCount = 4,
+                            voteProgressPercent = 50,
+                        ),
+                    ),
+                    confirmedMeetings = emptyList(),
+                )
+
+                val response = controller.getMeetingDashboard(hostName)
+
+                response.hostName shouldBe hostName
+                response.summary.votingCount shouldBe 1
+                response.inProgressMeetings.size shouldBe 1
+                response.inProgressMeetings.first().meetingId shouldBe MeetingId("meeting-a")
             }
         }
     }

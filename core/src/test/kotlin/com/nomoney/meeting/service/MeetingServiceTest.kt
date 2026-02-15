@@ -196,6 +196,85 @@ class MeetingServiceTest : DescribeSpec({
                 verify(exactly = 0) { meetingRepository.save(any()) }
             }
         }
+
+        describe("getHostMeetingDashboard") {
+            it("주최자 모임을 상태별로 분리하고 요약/카드 정보를 계산한다") {
+                val hostName = "주최자A"
+                val today = LocalDate.of(2026, 2, 15)
+
+                val votingMeeting = fixtureMeeting(
+                    id = MeetingId("voting-meeting"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(
+                        LocalDate.of(2026, 2, 20),
+                        LocalDate.of(2026, 2, 21),
+                    ),
+                    participants = listOf(
+                        fixtureParticipant(id = 1L, name = "A", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                        fixtureParticipant(id = 2L, name = "B", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                    ),
+                ).copy(hostName = hostName)
+
+                val closedMeeting = fixtureMeeting(
+                    id = MeetingId("closed-meeting"),
+                    status = MeetingStatus.CLOSED,
+                    dates = setOf(
+                        LocalDate.of(2026, 2, 16),
+                        LocalDate.of(2026, 2, 17),
+                    ),
+                    participants = listOf(
+                        fixtureParticipant(id = 3L, name = "C", voteDates = setOf(LocalDate.of(2026, 2, 16))),
+                        fixtureParticipant(id = 4L, name = "D", voteDates = setOf(LocalDate.of(2026, 2, 17))),
+                    ),
+                ).copy(hostName = hostName)
+
+                val confirmedMeeting = fixtureMeeting(
+                    id = MeetingId("confirmed-meeting"),
+                    status = MeetingStatus.CONFIRMED,
+                    finalizedDate = LocalDate.of(2026, 2, 18),
+                    dates = setOf(LocalDate.of(2026, 2, 18)),
+                    participants = listOf(
+                        fixtureParticipant(id = 5L, name = "E", voteDates = setOf(LocalDate.of(2026, 2, 18))),
+                    ),
+                ).copy(hostName = hostName)
+
+                val othersMeeting = fixtureMeeting(id = MeetingId("other-host-meeting")).copy(hostName = "다른주최자")
+
+                every { meetingRepository.findAll() } returns listOf(
+                    votingMeeting,
+                    closedMeeting,
+                    confirmedMeeting,
+                    othersMeeting,
+                )
+
+                val dashboard = meetingService.getHostMeetingDashboard(hostName = hostName, today = today)
+
+                dashboard.hostName shouldBe hostName
+                dashboard.summary.votingCount shouldBe 1
+                dashboard.summary.closedCount shouldBe 1
+                dashboard.summary.confirmedCount shouldBe 1
+
+                dashboard.inProgressMeetings.size shouldBe 2
+                dashboard.confirmedMeetings.size shouldBe 1
+
+                val votingCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("voting-meeting") }
+                votingCard.leadingDate shouldBe LocalDate.of(2026, 2, 20)
+                votingCard.isLeadingDateTied shouldBe false
+                votingCard.dDay shouldBe 5
+                votingCard.completedVoteCount shouldBe 2
+                votingCard.totalVoteCount shouldBe 2
+                votingCard.voteProgressPercent shouldBe 100
+
+                val closedCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("closed-meeting") }
+                closedCard.isLeadingDateTied shouldBe true
+                closedCard.dDay shouldBe 1
+
+                val confirmedCard = dashboard.confirmedMeetings.single()
+                confirmedCard.meetingId shouldBe MeetingId("confirmed-meeting")
+                confirmedCard.finalizedDate shouldBe LocalDate.of(2026, 2, 18)
+                confirmedCard.dDay shouldBe 3
+            }
+        }
     }
 },)
 
