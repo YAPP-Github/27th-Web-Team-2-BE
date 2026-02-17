@@ -2,12 +2,12 @@ package com.nomoney.api.auth
 
 import com.nomoney.api.auth.model.IssueTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenRequest
+import com.nomoney.api.config.OAuthRedirectProperties
 import com.nomoney.auth.domain.AuthToken
 import com.nomoney.auth.domain.RefreshToken
 import com.nomoney.auth.domain.RefreshTokenId
 import com.nomoney.auth.domain.TokenPair
 import com.nomoney.auth.domain.UserId
-import com.nomoney.api.config.OAuthRedirectProperties
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
 import io.kotest.core.spec.style.DescribeSpec
