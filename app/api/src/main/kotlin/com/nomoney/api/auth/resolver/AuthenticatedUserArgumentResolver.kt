@@ -3,7 +3,6 @@ package com.nomoney.api.auth.resolver
 import com.nomoney.auth.domain.User
 import com.nomoney.auth.service.AuthService
 import com.nomoney.exception.UnauthorizedException
-import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.core.MethodParameter
 import org.springframework.stereotype.Component
