@@ -1,12 +1,11 @@
 package com.nomoney.api.auth
 
-import com.nomoney.api.auth.model.GoogleOAuthLoginRequest
-import com.nomoney.api.auth.model.GoogleOAuthLoginResponse
 import com.nomoney.api.auth.model.IssueTokenRequest
 import com.nomoney.api.auth.model.IssueTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
+import com.nomoney.api.config.OAuthRedirectProperties
 import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.service.AuthService
@@ -17,8 +16,10 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Duration
 
@@ -27,6 +28,7 @@ import java.time.Duration
 class AuthController(
     private val authService: AuthService,
     private val socialAuthService: SocialAuthService,
+    private val oauthRedirectProperties: OAuthRedirectProperties,
 ) {
 
     @Operation(summary = "토큰 발급", description = "사용자의 액세스 토큰과 리프레시 토큰을 발급합니다 (임시 API)")
@@ -63,20 +65,24 @@ class AuthController(
         )
     }
 
-    @Operation(summary = "구글 소셜 로그인", description = "구글 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정합니다.")
-    @PostMapping("/api/v1/auth/oauth/google")
+    @Operation(summary = "구글 소셜 로그인", description = "구글 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정하고 프론트엔드 URL로 리다이렉트합니다.")
+    @GetMapping("/api/v1/auth/oauth/google")
     fun googleLogin(
-        @RequestBody request: GoogleOAuthLoginRequest,
+        @RequestParam code: String,
         response: HttpServletResponse,
-    ): GoogleOAuthLoginResponse {
-        val tokenPair = socialAuthService.loginWithSocialProvider(
-            provider = SocialProvider.GOOGLE,
-            authorizationCode = request.code,
-        )
+    ) {
+        try {
+            val tokenPair = socialAuthService.loginWithSocialProvider(
+                provider = SocialProvider.GOOGLE,
+                authorizationCode = code,
+            )
 
-        setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
+            setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
-        return GoogleOAuthLoginResponse()
+            response.sendRedirect(oauthRedirectProperties.successUrl)
+        } catch (e: Exception) {
+            response.sendRedirect(oauthRedirectProperties.failureUrl)
+        }
     }
 
     @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")
