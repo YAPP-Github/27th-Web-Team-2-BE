@@ -1,13 +1,11 @@
 package com.nomoney.api.auth
 
-import com.nomoney.api.auth.model.IssueTokenRequest
-import com.nomoney.api.auth.model.IssueTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
 import com.nomoney.api.config.OAuthRedirectProperties
 import com.nomoney.auth.domain.SocialProvider
-import com.nomoney.auth.domain.UserId
+import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
 import com.nomoney.exception.UnauthorizedException
@@ -28,47 +26,28 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
     private val authService: AuthService,
     private val socialAuthService: SocialAuthService,
+    private val anonymousAuthService: AnonymousAuthService,
     private val oauthRedirectProperties: OAuthRedirectProperties,
 ) {
 
-    @Operation(summary = "토큰 발급", description = "사용자의 액세스 토큰과 리프레시 토큰을 발급합니다 (임시 API)")
-    @PostMapping("/api/v1/auth/token")
-    fun issueToken(
-        @RequestBody request: IssueTokenRequest,
-    ): IssueTokenResponse {
-        val tokenPair = authService.issueTokenPair(
-            userId = UserId(request.userId),
-        )
+    @Operation(summary = "익명 로그인", description = "익명 사용자로 로그인합니다. 매 호출마다 새로운 익명 사용자가 생성됩니다.")
+    @GetMapping("/api/v1/auth/anonymous")
+    fun anonymousLogin(
+        @RequestParam state: String,
+        response: HttpServletResponse,
+    ) {
+        val tokenPair = anonymousAuthService.loginAnonymously()
 
-        return IssueTokenResponse(
-            accessToken = tokenPair.accessToken.tokenValue,
-            accessTokenExpiresAt = tokenPair.accessToken.expiresAt,
-            refreshToken = tokenPair.refreshToken.tokenValue,
-            refreshTokenExpiresAt = tokenPair.refreshToken.expiresAt,
-        )
-    }
+        setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
-    @Operation(summary = "토큰 갱신", description = "리프레시 토큰을 사용하여 새로운 액세스 토큰과 리프레시 토큰을 발급합니다")
-    @PostMapping("/api/v1/auth/refresh")
-    fun refreshToken(
-        @RequestBody request: RefreshTokenRequest,
-    ): RefreshTokenResponse {
-        val tokenPair = authService.refreshToken(
-            refreshTokenValue = request.refreshToken,
-        )
-
-        return RefreshTokenResponse(
-            accessToken = tokenPair.accessToken.tokenValue,
-            accessTokenExpiresAt = tokenPair.accessToken.expiresAt,
-            refreshToken = tokenPair.refreshToken.tokenValue,
-            refreshTokenExpiresAt = tokenPair.refreshToken.expiresAt,
-        )
+        response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
     }
 
     @Operation(summary = "구글 소셜 로그인", description = "구글 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정하고 프론트엔드 URL로 리다이렉트합니다.")
     @GetMapping("/api/v1/auth/oauth/google")
     fun googleLogin(
         @RequestParam code: String,
+        @RequestParam state: String,
         response: HttpServletResponse,
     ) {
         try {
@@ -79,7 +58,7 @@ class AuthController(
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
-            response.sendRedirect(oauthRedirectProperties.successUrl)
+            response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
         } catch (e: Exception) {
             response.sendRedirect(oauthRedirectProperties.failureUrl)
         }
@@ -89,6 +68,7 @@ class AuthController(
     @GetMapping("/api/v1/auth/oauth/kakao")
     fun kakaoLogin(
         @RequestParam code: String,
+        @RequestParam state: String,
         response: HttpServletResponse,
     ) {
         try {
@@ -99,7 +79,7 @@ class AuthController(
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
-            response.sendRedirect(oauthRedirectProperties.successUrl)
+            response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
         } catch (e: Exception) {
             response.sendRedirect(oauthRedirectProperties.failureUrl)
         }
@@ -118,6 +98,23 @@ class AuthController(
         setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
         return RefreshTokenCookieResponse()
+    }
+
+    @Operation(summary = "토큰 갱신", description = "리프레시 토큰을 사용하여 새로운 액세스 토큰과 리프레시 토큰을 발급합니다")
+    @PostMapping("/api/v1/auth/refresh")
+    fun refreshToken(
+        @RequestBody request: RefreshTokenRequest,
+    ): RefreshTokenResponse {
+        val tokenPair = authService.refreshToken(
+            refreshTokenValue = request.refreshToken,
+        )
+
+        return RefreshTokenResponse(
+            accessToken = tokenPair.accessToken.tokenValue,
+            accessTokenExpiresAt = tokenPair.accessToken.expiresAt,
+            refreshToken = tokenPair.refreshToken.tokenValue,
+            refreshTokenExpiresAt = tokenPair.refreshToken.expiresAt,
+        )
     }
 
     private fun extractRefreshTokenFromCookie(request: HttpServletRequest): String {
@@ -152,7 +149,7 @@ class AuthController(
         val refreshTokenCookie = Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshTokenValue).apply {
             isHttpOnly = true
             secure = true
-            path = "/"
+            path = "/api/v1/auth/refresh-cookie"
             maxAge = Duration.ofDays(90).seconds.toInt()
         }
         response.addCookie(refreshTokenCookie)

@@ -4,6 +4,7 @@ enum class SocialProvider {
     GOOGLE,
     KAKAO,
     NAVER,
+    ANONYMOUS,
     ;
 
     companion object {
