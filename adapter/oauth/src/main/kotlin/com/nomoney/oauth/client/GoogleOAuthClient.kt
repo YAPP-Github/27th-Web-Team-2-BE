@@ -27,7 +27,7 @@ class GoogleOAuthClient(
             "code" to authorizationCode,
             "client_id" to properties.clientId,
             "client_secret" to properties.clientSecret,
-//            "redirect_uri" to properties.redirectUri,
+            "redirect_uri" to properties.redirectUri,
             "grant_type" to "authorization_code",
         )
 

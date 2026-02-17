@@ -7,6 +7,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":adapter:oauth"))
     implementation(project(":adapter:rdb"))
     api(project(":domain"))
     implementation(project(":port"))
