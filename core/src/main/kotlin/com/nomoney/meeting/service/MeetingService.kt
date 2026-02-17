@@ -48,7 +48,7 @@ class MeetingService(
         }
 
         val sortedParticipants = meeting.participants.sortedWith(
-            compareByDescending<Participant> { it.updatedAt ?: LocalDateTime.MIN },
+            compareByDescending<Participant> { it.updatedAt },
         )
 
         return meeting.copy(participants = sortedParticipants)
