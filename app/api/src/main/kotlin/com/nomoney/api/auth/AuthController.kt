@@ -85,6 +85,26 @@ class AuthController(
         }
     }
 
+    @Operation(summary = "카카오 소셜 로그인", description = "카카오 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정하고 프론트엔드 URL로 리다이렉트합니다.")
+    @GetMapping("/api/v1/auth/oauth/kakao")
+    fun kakaoLogin(
+        @RequestParam code: String,
+        response: HttpServletResponse,
+    ) {
+        try {
+            val tokenPair = socialAuthService.loginWithSocialProvider(
+                provider = SocialProvider.KAKAO,
+                authorizationCode = code,
+            )
+
+            setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
+
+            response.sendRedirect(oauthRedirectProperties.successUrl)
+        } catch (e: Exception) {
+            response.sendRedirect(oauthRedirectProperties.failureUrl)
+        }
+    }
+
     @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")
     @PostMapping("/api/v1/auth/refresh-cookie")
     fun refreshTokenWithCookie(
