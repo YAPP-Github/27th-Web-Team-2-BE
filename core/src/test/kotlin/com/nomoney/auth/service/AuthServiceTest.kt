@@ -6,6 +6,7 @@ import com.nomoney.auth.domain.RefreshTokenId
 import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.port.AuthTokenRepository
 import com.nomoney.auth.port.RefreshTokenRepository
+import com.nomoney.exception.InvalidRefreshTokenException
 import com.nomoney.exception.UnauthorizedException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -127,17 +128,17 @@ class AuthServiceTest : DescribeSpec({
                 verify { refreshTokenRepository.markAsUsed(refreshTokenValue) }
             }
 
-            it("유효하지 않은 RefreshToken으로 요청 시 UnauthorizedException이 발생한다") {
+            it("유효하지 않은 RefreshToken으로 요청 시 InvalidRefreshTokenException이 발생한다") {
                 val invalidTokenValue = "invalid-token"
 
                 every { refreshTokenRepository.findByTokenValue(invalidTokenValue) } returns null
 
-                shouldThrow<UnauthorizedException> {
+                shouldThrow<InvalidRefreshTokenException> {
                     authService.refreshToken(invalidTokenValue)
                 }
             }
 
-            it("만료된 RefreshToken으로 요청 시 UnauthorizedException이 발생한다") {
+            it("만료된 RefreshToken으로 요청 시 InvalidRefreshTokenException이 발생한다") {
                 val userId = UserId(1L)
                 val expiredTokenValue = "expired-token"
                 val expiredRefreshToken = RefreshToken(
@@ -151,12 +152,12 @@ class AuthServiceTest : DescribeSpec({
 
                 every { refreshTokenRepository.findByTokenValue(expiredTokenValue) } returns expiredRefreshToken
 
-                shouldThrow<UnauthorizedException> {
+                shouldThrow<InvalidRefreshTokenException> {
                     authService.refreshToken(expiredTokenValue)
                 }
             }
 
-            it("이미 사용된 RefreshToken으로 요청 시 UnauthorizedException이 발생한다 (RTR)") {
+            it("이미 사용된 RefreshToken으로 요청 시 InvalidRefreshTokenException이 발생한다 (RTR)") {
                 val userId = UserId(1L)
                 val usedTokenValue = "used-token"
                 val usedRefreshToken = RefreshToken(
@@ -170,7 +171,7 @@ class AuthServiceTest : DescribeSpec({
 
                 every { refreshTokenRepository.findByTokenValue(usedTokenValue) } returns usedRefreshToken
 
-                shouldThrow<UnauthorizedException> {
+                shouldThrow<InvalidRefreshTokenException> {
                     authService.refreshToken(usedTokenValue)
                 }
             }

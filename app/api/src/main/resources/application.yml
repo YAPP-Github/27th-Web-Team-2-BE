@@ -6,6 +6,11 @@ aws:
   accessKey: ${AWS_ACCESS_KEY}
   secretKey: ${AWS_SECRET_KEY}
 
+oauth:
+  redirect:
+    success-url: ${OAUTH_SUCCESS_URL:http://localhost:3000/test/login/result}
+    failure-url: ${OAUTH_FAILURE_URL:http://localhost:3000/test/login/error}
+
 management:
   endpoints:
     web:
