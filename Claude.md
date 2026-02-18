@@ -25,6 +25,10 @@ app:api → core → port ← adapter:rdb
 - Kotest (kotest-runner-junit5, kotest-assertions-core)
 - MockK
 
+## 코딩 컨벤션
+- `NoMoneyException`을 사용할 때는 가급적 `cause`를 함께 전달할 것
+- 풀 패키지명 대신 `import` 구문을 사용할 것
+
 ## Git 컨벤션
 **커밋 메시지**: `type: subject`
 - feat, fix, refactor, docs, test, chore, rename, style
