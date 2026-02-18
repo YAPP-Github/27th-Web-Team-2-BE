@@ -17,7 +17,7 @@ class DuplicateContentException(message: String, messageForDev: String?) : Clien
 class InvalidRequestException(message: String, messageForDev: String?, cause: Throwable? = null) :
     ClientException("E003", message, messageForDev, cause)
 
-class SocialAuthException(messageForDev: String) : ClientException("E004", "소셜 로그인에 실패했습니다.", messageForDev)
+class SocialAuthException(messageForDev: String, cause: Throwable?) : ClientException("E004", "소셜 로그인에 실패했습니다.", messageForDev, cause)
 class InvalidStateException(messageForDev: String) : ClientException("E005", "잘못된 요청입니다.", messageForDev)
 class UnsupportedSocialProviderException(messageForDev: String) : ClientException("E006", "지원하지 않는 소셜 로그인입니다.", messageForDev)
 class InvalidRefreshTokenException(messageForDev: String) : ClientException("E007", "토큰이 유효하지 않습니다.", messageForDev)
