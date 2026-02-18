@@ -9,6 +9,7 @@ import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
 import com.nomoney.exception.UnauthorizedException
+import com.nomoney.support.logging.logger
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.Cookie
@@ -29,6 +30,7 @@ class AuthController(
     private val anonymousAuthService: AnonymousAuthService,
     private val oauthRedirectProperties: OAuthRedirectProperties,
 ) {
+    private val logger = logger()
 
     @Operation(summary = "익명 로그인", description = "익명 사용자로 로그인합니다. 매 호출마다 새로운 익명 사용자가 생성됩니다.")
     @GetMapping("/api/v1/auth/anonymous")
@@ -60,6 +62,7 @@ class AuthController(
 
             response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
         } catch (e: Exception) {
+            logger.error("구글 로그인 실패", e)
             response.sendRedirect(oauthRedirectProperties.failureUrl)
         }
     }
@@ -81,6 +84,7 @@ class AuthController(
 
             response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
         } catch (e: Exception) {
+            logger.error("카카오 로그인 실패", e)
             response.sendRedirect(oauthRedirectProperties.failureUrl)
         }
     }
