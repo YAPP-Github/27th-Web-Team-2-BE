@@ -71,9 +71,6 @@ data class MeetingDashboardCardResponse(
 
     @Schema(description = "전체 투표 대상 인원 수", example = "6")
     val totalVoteCount: Int,
-
-    @Schema(description = "투표 진행률(%)", example = "66")
-    val voteProgressPercent: Int,
 )
 
 data class MeetingDateVoteDetailResponse(
@@ -115,7 +112,6 @@ private fun MeetingDashboardCard.toResponse(): MeetingDashboardCardResponse = Me
     finalizedDate = this.finalizedDate,
     completedVoteCount = this.completedVoteCount,
     totalVoteCount = this.totalVoteCount,
-    voteProgressPercent = this.voteProgressPercent,
 )
 
 private fun MeetingDateVoteDetail.toResponse(): MeetingDateVoteDetailResponse = MeetingDateVoteDetailResponse(
