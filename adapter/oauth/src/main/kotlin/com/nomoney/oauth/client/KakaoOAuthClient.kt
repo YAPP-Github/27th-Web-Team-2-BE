@@ -35,7 +35,7 @@ class KakaoOAuthClient(
             add("client_secret", properties.clientSecret)
             add("redirect_uri", properties.redirectUri)
             add("code", authorizationCode)
-            if(state != null) add("state", state)
+            if (state != null) add("state", state)
         }
 
         val response = try {

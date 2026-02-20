@@ -56,7 +56,7 @@ class AuthController(
             val tokenPair = socialAuthService.loginWithSocialProvider(
                 provider = SocialProvider.GOOGLE,
                 authorizationCode = code,
-                state= state,
+                state = state,
             )
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
