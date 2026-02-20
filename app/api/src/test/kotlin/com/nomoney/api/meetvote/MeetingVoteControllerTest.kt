@@ -33,7 +33,7 @@ class MeetingVoteControllerTest : DescribeSpec({
     }
 
     describe("MeetingVoteController") {
-        describe("POST /api/v1/meeting/finalize") {
+        describe("POST /api/v1/host/meeting/finalize") {
             it("모임 확정 요청 시 CONFIRMED 상태와 확정 날짜를 반환한다") {
                 val meetingId = MeetingId("test-meeting")
                 val finalizedDate = LocalDate.of(2026, 2, 20)
@@ -58,7 +58,7 @@ class MeetingVoteControllerTest : DescribeSpec({
             }
         }
 
-        describe("GET /api/v1/meeting/finalize/preview") {
+        describe("GET /api/v1/host/meeting/finalize/preview") {
             it("모임 확정 후보 정보를 반환한다") {
                 val meetingId = MeetingId("meeting-a")
                 every {
@@ -141,7 +141,7 @@ class MeetingVoteControllerTest : DescribeSpec({
             }
         }
 
-        describe("GET /api/v1/meeting/dashboard/in-progress") {
+        describe("GET /api/v1/host/meeting/dashboard/in-progress") {
             it("주최자 진행중 모임 대시보드를 조회한다") {
                 val hostName = "이파이"
                 every { meetingService.getHostMeetingDashboard(authenticatedUser.id) } returns MeetingDashboard(
@@ -182,7 +182,7 @@ class MeetingVoteControllerTest : DescribeSpec({
             }
         }
 
-        describe("GET /api/v1/meeting/dashboard/confirmed") {
+        describe("GET /api/v1/host/meeting/dashboard/confirmed") {
             it("주최자 확정 모임 대시보드를 조회한다") {
                 val hostName = "이파이"
                 val finalizedDate = LocalDate.of(2026, 2, 25)
@@ -224,7 +224,7 @@ class MeetingVoteControllerTest : DescribeSpec({
             }
         }
 
-        describe("PUT /api/v1/meeting") {
+        describe("PUT /api/v1/host/meeting") {
             it("모임 수정 요청을 서비스로 위임하고 수정 결과를 반환한다") {
                 val meetingId = MeetingId("meeting-to-update")
                 val request = UpdateMeetingRequest(
