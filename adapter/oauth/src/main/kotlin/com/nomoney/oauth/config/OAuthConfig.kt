@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestTemplate
 
 @Configuration
-@EnableConfigurationProperties(GoogleOAuthProperties::class)
+@EnableConfigurationProperties(GoogleOAuthProperties::class, KakaoOAuthProperties::class)
 class OAuthConfig {
 
     @Bean

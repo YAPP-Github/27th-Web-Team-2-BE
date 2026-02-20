@@ -21,7 +21,7 @@ class GoogleOAuthClient(
     override fun supports(provider: SocialProvider): Boolean =
         provider == SocialProvider.GOOGLE
 
-    override fun getAccessToken(authorizationCode: String): String {
+    override fun getAccessToken(authorizationCode: String, state: String?): String {
         val url = "https://oauth2.googleapis.com/token"
         val request = mapOf(
             "code" to authorizationCode,
