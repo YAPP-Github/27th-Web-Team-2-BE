@@ -53,7 +53,7 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, null) } returns tokenPair
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
                 every { oauthRedirectProperties.successUrl } returns "https://example.com/auth/callback"
 
                 // when
@@ -106,7 +106,7 @@ class AuthControllerTest : DescribeSpec({
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
 
                 every {
-                    socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, null)
+                    socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state)
                 } throws RuntimeException("카카오 로그인 실패")
                 every { oauthRedirectProperties.failureUrl } returns "https://example.com/auth/failure"
 

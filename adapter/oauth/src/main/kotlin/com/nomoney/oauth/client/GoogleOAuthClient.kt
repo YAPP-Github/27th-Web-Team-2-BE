@@ -23,13 +23,14 @@ class GoogleOAuthClient(
 
     override fun getAccessToken(authorizationCode: String, state: String?): String {
         val url = "https://oauth2.googleapis.com/token"
-        val request = mapOf(
-            "code" to authorizationCode,
-            "client_id" to properties.clientId,
-            "client_secret" to properties.clientSecret,
-            "redirect_uri" to properties.redirectUri,
-            "grant_type" to "authorization_code",
-        )
+        val request = buildMap {
+            put("code", authorizationCode)
+            put("client_id", properties.clientId)
+            put("client_secret", properties.clientSecret)
+            put("redirect_uri", properties.redirectUri)
+            put("grant_type", "authorization_code")
+            if (state != null) put("state", state)
+        }
 
         val response = try {
             restTemplate.postForObject(url, request, GoogleTokenResponse::class.java)
