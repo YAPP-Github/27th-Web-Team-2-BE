@@ -12,6 +12,7 @@ import com.nomoney.meeting.domain.MeetingStatus
 import com.nomoney.meeting.service.MeetingDashboard
 import com.nomoney.meeting.service.MeetingDashboardCard
 import com.nomoney.meeting.service.MeetingDashboardSummary
+import com.nomoney.meeting.service.MeetingDateVoteDetail
 import com.nomoney.meeting.service.MeetingService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -137,8 +138,14 @@ class MeetingVoteControllerTest : DescribeSpec({
                             status = MeetingStatus.VOTING,
                             leadingDate = LocalDate.of(2026, 2, 20),
                             isLeadingDateTied = false,
+                            topDateVoteDetails = listOf(
+                                MeetingDateVoteDetail(
+                                    date = LocalDate.of(2026, 2, 20),
+                                    voteCount = 2,
+                                    voterNames = listOf("A", "B"),
+                                ),
+                            ),
                             finalizedDate = null,
-                            dDay = 5,
                             completedVoteCount = 2,
                             totalVoteCount = 4,
                             voteProgressPercent = 50,
@@ -153,6 +160,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                 response.summary.votingCount shouldBe 1
                 response.inProgressMeetings.size shouldBe 1
                 response.inProgressMeetings.first().meetingId shouldBe MeetingId("meeting-a")
+                response.inProgressMeetings.first().topDateVoteDetails.single().voteCount shouldBe 2
             }
         }
 
