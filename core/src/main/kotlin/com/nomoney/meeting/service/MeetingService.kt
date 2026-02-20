@@ -150,11 +150,10 @@ class MeetingService(
             hostName = meetings.firstNotNullOfOrNull { it.hostName } ?: "",
             summary = MeetingDashboardSummary(
                 votingCount = meetings.count { it.status == MeetingStatus.VOTING },
-                closedCount = meetings.count { it.status == MeetingStatus.CLOSED },
                 confirmedCount = meetings.count { it.status == MeetingStatus.CONFIRMED },
             ),
             inProgressMeetings = dashboardCards
-                .filter { it.first.status != MeetingStatus.CONFIRMED }
+                .filter { it.first.status == MeetingStatus.VOTING }
                 .sortedWith(compareBy<Pair<MeetingDashboardCard, LocalDate?>> { it.second == null }.thenBy { it.second })
                 .map { it.first },
             confirmedMeetings = dashboardCards
@@ -260,31 +259,6 @@ class MeetingService(
         }
     }
 
-    fun closeMeeting(
-        meetingId: MeetingId,
-        requesterUserId: UserId,
-    ): Meeting {
-        val meeting = getMeetingInfo(meetingId)
-            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
-        assertMeetingHostOwnership(meeting, requesterUserId)
-
-        return when (meeting.status) {
-            MeetingStatus.VOTING -> {
-                meetingRepository.save(
-                    meeting.copy(
-                        status = MeetingStatus.CLOSED,
-                        finalizedDate = null,
-                    ),
-                )
-            }
-            MeetingStatus.CLOSED -> meeting
-            MeetingStatus.CONFIRMED -> throw InvalidRequestException(
-                "이미 확정된 모임은 마감할 수 없습니다.",
-                "meetingId=${meetingId.value}",
-            )
-        }
-    }
-
     fun finalizeMeeting(
         meetingId: MeetingId,
         selectedDate: LocalDate?,
@@ -326,6 +300,30 @@ class MeetingService(
                 status = MeetingStatus.CONFIRMED,
                 finalizedDate = resolvedFinalizedDate,
             ),
+        )
+    }
+
+    fun getFinalizePreview(
+        meetingId: MeetingId,
+        requesterUserId: UserId,
+    ): MeetingFinalizePreview {
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
+
+        if (meeting.status == MeetingStatus.CONFIRMED) {
+            throw InvalidRequestException(
+                "이미 확정된 모임입니다.",
+                "meetingId=${meetingId.value}",
+            )
+        }
+
+        val topDateVoteDetails = topDateVoteDetails(meeting)
+        return MeetingFinalizePreview(
+            meetingId = meeting.id,
+            meetingTitle = meeting.title,
+            topDateVoteDetails = topDateVoteDetails,
+            requiresDateSelection = topDateVoteDetails.size > 1,
         )
     }
 

@@ -17,7 +17,7 @@ data class InProgressMeetingDashboardResponse(
     @Schema(description = "상태별 모임 요약")
     val summary: MeetingDashboardSummaryResponse,
 
-    @Schema(description = "진행 중 모임 목록(VOTING/CLOSED)")
+    @Schema(description = "진행 중 모임 목록(VOTING)")
     val meetings: List<MeetingDashboardCardResponse>,
 )
 
@@ -36,9 +36,6 @@ data class ConfirmedMeetingDashboardResponse(
 data class MeetingDashboardSummaryResponse(
     @Schema(description = "투표중 모임 개수", example = "3")
     val votingCount: Int,
-
-    @Schema(description = "마감 모임 개수", example = "1")
-    val closedCount: Int,
 
     @Schema(description = "확정 모임 개수", example = "2")
     val confirmedCount: Int,
@@ -98,7 +95,6 @@ fun MeetingDashboard.toConfirmedResponse(): ConfirmedMeetingDashboardResponse = 
 
 private fun MeetingDashboardSummary.toResponse(): MeetingDashboardSummaryResponse = MeetingDashboardSummaryResponse(
     votingCount = this.votingCount,
-    closedCount = this.closedCount,
     confirmedCount = this.confirmedCount,
 )
 
