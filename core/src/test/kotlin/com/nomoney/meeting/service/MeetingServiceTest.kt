@@ -2,7 +2,6 @@ package com.nomoney.meeting.service
 
 import com.nomoney.auth.domain.UserId
 import com.nomoney.exception.InvalidRequestException
-import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -43,58 +42,6 @@ class MeetingServiceTest : DescribeSpec({
                 verify(exactly = 0) { meetingRepository.save(any()) }
             }
         }
-
-        describe("closeMeeting") {
-            it("VOTING 상태 모임은 CLOSED로 전환된다") {
-                val meeting = fixtureMeeting(status = MeetingStatus.VOTING)
-                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
-                every { meetingRepository.save(any()) } answers { firstArg() }
-
-                val result = meetingService.closeMeeting(meeting.id, UserId(1L))
-
-                result.status shouldBe MeetingStatus.CLOSED
-                verify(exactly = 1) { meetingRepository.save(any()) }
-            }
-
-            it("이미 CLOSED인 모임을 다시 마감하면 변경 없이 반환된다") {
-                val meeting = fixtureMeeting(status = MeetingStatus.CLOSED)
-                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
-
-                val result = meetingService.closeMeeting(meeting.id, UserId(1L))
-
-                result.status shouldBe MeetingStatus.CLOSED
-                verify(exactly = 0) { meetingRepository.save(any()) }
-            }
-
-            it("이미 CONFIRMED인 모임은 마감할 수 없다") {
-                val meeting = fixtureMeeting(
-                    status = MeetingStatus.CONFIRMED,
-                    finalizedDate = LocalDate.of(2026, 2, 20),
-                )
-                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
-
-                shouldThrow<InvalidRequestException> {
-                    meetingService.closeMeeting(meeting.id, UserId(1L))
-                }
-
-                verify(exactly = 0) { meetingRepository.save(any()) }
-            }
-
-            it("주최자가 아닌 사용자는 모임을 마감할 수 없다") {
-                val meeting = fixtureMeeting(
-                    status = MeetingStatus.VOTING,
-                    hostUserId = UserId(1L),
-                )
-                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
-
-                shouldThrow<UnauthorizedException> {
-                    meetingService.closeMeeting(meeting.id, UserId(2L))
-                }
-
-                verify(exactly = 0) { meetingRepository.save(any()) }
-            }
-        }
-
         describe("finalizeMeeting") {
             it("단일 최다 득표 날짜가 있으면 finalizedDate 없이 확정된다") {
                 val meeting = fixtureMeeting(
@@ -133,7 +80,7 @@ class MeetingServiceTest : DescribeSpec({
 
             it("공동 1위일 때 finalizedDate가 없으면 확정할 수 없다") {
                 val meeting = fixtureMeeting(
-                    status = MeetingStatus.CLOSED,
+                    status = MeetingStatus.VOTING,
                     dates = setOf(
                         LocalDate.of(2026, 2, 20),
                         LocalDate.of(2026, 2, 21),
@@ -227,6 +174,65 @@ class MeetingServiceTest : DescribeSpec({
                 verify(exactly = 0) { meetingRepository.save(any()) }
             }
         }
+        describe("getFinalizePreview") {
+            it("최다 득표 날짜 후보와 투표자 정보를 반환한다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("preview-meeting"),
+                    status = MeetingStatus.VOTING,
+                    title = "프리뷰 모임",
+                    dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                    participants = listOf(
+                        fixtureParticipant(id = 1L, name = "A", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                        fixtureParticipant(id = 2L, name = "B", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                        fixtureParticipant(id = 3L, name = "C", voteDates = setOf(LocalDate.of(2026, 2, 21))),
+                    ),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                val result = meetingService.getFinalizePreview(meeting.id, UserId(1L))
+
+                result.meetingId shouldBe meeting.id
+                result.meetingTitle shouldBe "프리뷰 모임"
+                result.requiresDateSelection shouldBe false
+                result.topDateVoteDetails.size shouldBe 1
+                result.topDateVoteDetails.single().date shouldBe LocalDate.of(2026, 2, 20)
+                result.topDateVoteDetails.single().voterNames shouldBe listOf("A", "B")
+            }
+
+            it("공동 1위면 확정일 선택 필요값이 true다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("preview-tie"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                    participants = listOf(
+                        fixtureParticipant(id = 1L, name = "A", voteDates = setOf(LocalDate.of(2026, 2, 20))),
+                        fixtureParticipant(id = 2L, name = "B", voteDates = setOf(LocalDate.of(2026, 2, 21))),
+                    ),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                val result = meetingService.getFinalizePreview(meeting.id, UserId(1L))
+
+                result.requiresDateSelection shouldBe true
+                result.topDateVoteDetails.map { it.date } shouldBe listOf(
+                    LocalDate.of(2026, 2, 20),
+                    LocalDate.of(2026, 2, 21),
+                )
+            }
+
+            it("이미 CONFIRMED인 모임은 프리뷰를 조회할 수 없다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("confirmed-meeting"),
+                    status = MeetingStatus.CONFIRMED,
+                    finalizedDate = LocalDate.of(2026, 2, 20),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<InvalidRequestException> {
+                    meetingService.getFinalizePreview(meeting.id, UserId(1L))
+                }
+            }
+        }
 
         describe("getHostMeetingDashboard") {
             it("주최자 모임을 상태별로 분리하고 요약/카드 정보를 계산한다") {
@@ -284,10 +290,9 @@ class MeetingServiceTest : DescribeSpec({
 
                 dashboard.hostName shouldBe hostName
                 dashboard.summary.votingCount shouldBe 1
-                dashboard.summary.closedCount shouldBe 1
                 dashboard.summary.confirmedCount shouldBe 1
 
-                dashboard.inProgressMeetings.size shouldBe 2
+                dashboard.inProgressMeetings.size shouldBe 1
                 dashboard.confirmedMeetings.size shouldBe 1
 
                 val votingCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("voting-meeting") }
@@ -299,14 +304,6 @@ class MeetingServiceTest : DescribeSpec({
                 votingCard.topDateVoteDetails.single().voterNames shouldBe listOf("A", "B")
                 votingCard.completedVoteCount shouldBe 2
                 votingCard.totalVoteCount shouldBe 2
-
-                val closedCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("closed-meeting") }
-                closedCard.isLeadingDateTied shouldBe true
-                closedCard.topDateVoteDetails.size shouldBe 2
-                closedCard.topDateVoteDetails.map { it.date } shouldBe listOf(
-                    LocalDate.of(2026, 2, 16),
-                    LocalDate.of(2026, 2, 17),
-                )
 
                 val confirmedCard = dashboard.confirmedMeetings.single()
                 confirmedCard.meetingId shouldBe MeetingId("confirmed-meeting")
@@ -505,6 +502,7 @@ class MeetingServiceTest : DescribeSpec({
 
 private fun fixtureMeeting(
     id: MeetingId = MeetingId("meeting-1"),
+    title: String = "테스트 모임",
     hostName: String = "주최자",
     hostUserId: UserId = UserId(1L),
     status: MeetingStatus = MeetingStatus.VOTING,
@@ -514,7 +512,7 @@ private fun fixtureMeeting(
 ): Meeting {
     return Meeting(
         id = id,
-        title = "테스트 모임",
+        title = title,
         hostName = hostName,
         hostUserId = hostUserId,
         dates = dates,

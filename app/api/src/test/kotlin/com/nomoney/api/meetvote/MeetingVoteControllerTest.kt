@@ -1,6 +1,5 @@
 package com.nomoney.api.meetvote
 
-import com.nomoney.api.meetvote.model.CloseMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
@@ -13,6 +12,7 @@ import com.nomoney.meeting.service.MeetingDashboard
 import com.nomoney.meeting.service.MeetingDashboardCard
 import com.nomoney.meeting.service.MeetingDashboardSummary
 import com.nomoney.meeting.service.MeetingDateVoteDetail
+import com.nomoney.meeting.service.MeetingFinalizePreview
 import com.nomoney.meeting.service.MeetingService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -33,21 +33,6 @@ class MeetingVoteControllerTest : DescribeSpec({
     }
 
     describe("MeetingVoteController") {
-
-        describe("POST /api/v1/meeting/close") {
-            it("모임 마감 요청 시 CLOSED 상태를 반환한다") {
-                val meetingId = MeetingId("test-meeting")
-                every { meetingService.closeMeeting(meetingId, authenticatedUser.id) } returns fixtureMeeting(
-                    id = meetingId,
-                    status = MeetingStatus.CLOSED,
-                )
-
-                val response = controller.closeMeeting(authenticatedUser, CloseMeetingRequest(meetingId = meetingId))
-
-                response.status shouldBe MeetingStatus.CLOSED
-            }
-        }
-
         describe("POST /api/v1/meeting/finalize") {
             it("모임 확정 요청 시 CONFIRMED 상태와 확정 날짜를 반환한다") {
                 val meetingId = MeetingId("test-meeting")
@@ -70,6 +55,41 @@ class MeetingVoteControllerTest : DescribeSpec({
 
                 response.status shouldBe MeetingStatus.CONFIRMED
                 response.finalizedDate shouldBe finalizedDate
+            }
+        }
+
+        describe("GET /api/v1/meeting/finalize/preview") {
+            it("모임 확정 후보 정보를 반환한다") {
+                val meetingId = MeetingId("meeting-a")
+                every {
+                    meetingService.getFinalizePreview(meetingId, authenticatedUser.id)
+                } returns MeetingFinalizePreview(
+                    meetingId = meetingId,
+                    meetingTitle = "모임A",
+                    topDateVoteDetails = listOf(
+                        MeetingDateVoteDetail(
+                            date = LocalDate.of(2026, 2, 20),
+                            voteCount = 2,
+                            voterNames = listOf("A", "B"),
+                        ),
+                        MeetingDateVoteDetail(
+                            date = LocalDate.of(2026, 2, 21),
+                            voteCount = 2,
+                            voterNames = listOf("A", "C"),
+                        ),
+                    ),
+                    requiresDateSelection = true,
+                )
+
+                val response = controller.getFinalizeMeetingPreview(
+                    user = authenticatedUser,
+                    meetId = meetingId.value,
+                )
+
+                response.meetingId shouldBe meetingId
+                response.meetingTitle shouldBe "모임A"
+                response.requiresDateSelection shouldBe true
+                response.topDateVoteDetails.size shouldBe 2
             }
         }
 
@@ -128,7 +148,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                     hostName = hostName,
                     summary = MeetingDashboardSummary(
                         votingCount = 1,
-                        closedCount = 0,
                         confirmedCount = 1,
                     ),
                     inProgressMeetings = listOf(
@@ -171,7 +190,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                     hostName = hostName,
                     summary = MeetingDashboardSummary(
                         votingCount = 1,
-                        closedCount = 0,
                         confirmedCount = 1,
                     ),
                     inProgressMeetings = emptyList(),
