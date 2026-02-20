@@ -59,7 +59,7 @@ class MeetingVoteController(
     }
 
     @Operation(summary = "주최자 진행중 모임 대시보드 조회", description = "주최자 기준 진행중(VOTING) 모임 목록과 요약 정보를 조회합니다.")
-    @GetMapping("/api/v1/meeting/dashboard/in-progress")
+    @GetMapping("/api/v1/host/meeting/dashboard/in-progress")
     fun getInProgressMeetingDashboard(
         user: User,
     ): InProgressMeetingDashboardResponse {
@@ -67,7 +67,7 @@ class MeetingVoteController(
     }
 
     @Operation(summary = "주최자 확정 모임 대시보드 조회", description = "주최자 기준 확정(CONFIRMED) 모임 목록과 요약 정보를 조회합니다.")
-    @GetMapping("/api/v1/meeting/dashboard/confirmed")
+    @GetMapping("/api/v1/host/meeting/dashboard/confirmed")
     fun getConfirmedMeetingDashboard(
         user: User,
     ): ConfirmedMeetingDashboardResponse {
@@ -78,7 +78,7 @@ class MeetingVoteController(
         summary = "모임 확정 후보 조회",
         description = "모임 확정 시 필요한 최다 득표 날짜 후보(날짜/득표수/투표자)를 조회합니다.",
     )
-    @GetMapping("/api/v1/meeting/finalize/preview")
+    @GetMapping("/api/v1/host/meeting/finalize/preview")
     fun getFinalizeMeetingPreview(
         user: User,
         @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
@@ -114,7 +114,7 @@ class MeetingVoteController(
     }
 
     @Operation(summary = "모임 수정", description = "모임 제목, 최대 인원, 후보 날짜, 삭제할 참여자를 반영해 모임을 수정합니다.")
-    @PutMapping("/api/v1/meeting")
+    @PutMapping("/api/v1/host/meeting")
     fun updateMeeting(
         user: User,
         @RequestBody request: UpdateMeetingRequest,
@@ -176,7 +176,7 @@ class MeetingVoteController(
         summary = "모임 확정",
         description = "투표 결과를 바탕으로 최종 날짜를 확정하고 모임 상태를 확정으로 전환합니다. 공동 1위인 경우 finalizedDate를 함께 요청해야 합니다.",
     )
-    @PostMapping("/api/v1/meeting/finalize")
+    @PostMapping("/api/v1/host/meeting/finalize")
     fun finalizeMeeting(
         user: User,
         @RequestBody request: FinalizeMeetingRequest,
