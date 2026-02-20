@@ -13,7 +13,6 @@ import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
 import java.security.SecureRandom
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import org.springframework.stereotype.Service
 
 @Service
@@ -118,14 +117,13 @@ class MeetingService(
 
     fun getHostMeetingDashboard(
         hostUserId: UserId,
-        today: LocalDate = LocalDate.now(),
     ): MeetingDashboard {
         val meetings = meetingRepository.findAll()
             .filter { it.hostUserId == hostUserId }
 
         val dashboardCards = meetings.map { meeting ->
-            val topDates = topVotedDates(meeting)
-            val leadingDate = topDates.minOrNull()
+            val topDateVoteDetails = topDateVoteDetails(meeting)
+            val leadingDate = topDateVoteDetails.minOfOrNull { it.date }
             val referenceDate = if (meeting.status == MeetingStatus.CONFIRMED) {
                 meeting.finalizedDate
             } else {
@@ -146,13 +144,13 @@ class MeetingService(
                 title = meeting.title,
                 status = meeting.status,
                 leadingDate = leadingDate,
-                isLeadingDateTied = topDates.size > 1,
+                isLeadingDateTied = topDateVoteDetails.size > 1,
+                topDateVoteDetails = topDateVoteDetails,
                 finalizedDate = meeting.finalizedDate,
-                dDay = referenceDate?.let { ChronoUnit.DAYS.between(today, it).toInt() },
                 completedVoteCount = completedVoteCount,
                 totalVoteCount = totalVoteCount,
                 voteProgressPercent = voteProgressPercent,
-            )
+            ) to referenceDate
         }
 
         return MeetingDashboard(
@@ -163,11 +161,13 @@ class MeetingService(
                 confirmedCount = meetings.count { it.status == MeetingStatus.CONFIRMED },
             ),
             inProgressMeetings = dashboardCards
-                .filter { it.status != MeetingStatus.CONFIRMED }
-                .sortedWith(compareBy<MeetingDashboardCard> { it.dDay == null }.thenBy { it.dDay }),
+                .filter { it.first.status != MeetingStatus.CONFIRMED }
+                .sortedWith(compareBy<Pair<MeetingDashboardCard, LocalDate?>> { it.second == null }.thenBy { it.second })
+                .map { it.first },
             confirmedMeetings = dashboardCards
-                .filter { it.status == MeetingStatus.CONFIRMED }
-                .sortedWith(compareBy<MeetingDashboardCard> { it.dDay == null }.thenBy { it.dDay }),
+                .filter { it.first.status == MeetingStatus.CONFIRMED }
+                .sortedWith(compareBy<Pair<MeetingDashboardCard, LocalDate?>> { it.second == null }.thenBy { it.second })
+                .map { it.first },
         )
     }
 
@@ -482,21 +482,37 @@ class MeetingService(
     }
 
     private fun topVotedDates(meeting: Meeting): Set<LocalDate> {
-        val voteCounts = meeting.dates.associateWith { 0 }.toMutableMap()
+        return topDateVoteDetails(meeting)
+            .map { it.date }
+            .toSet()
+    }
+
+    private fun topDateVoteDetails(meeting: Meeting): List<MeetingDateVoteDetail> {
+        val voteNamesByDate = meeting.dates
+            .associateWith { mutableListOf<String>() }
+            .toMutableMap()
 
         meeting.participants
             .filter { it.hasVoted }
             .forEach { participant ->
                 participant.voteDates
-                    .filter { it in voteCounts }
+                    .filter { it in voteNamesByDate }
                     .forEach { voteDate ->
-                        voteCounts[voteDate] = voteCounts.getValue(voteDate) + 1
+                        voteNamesByDate.getValue(voteDate).add(participant.name)
                     }
             }
 
-        val maxCount = voteCounts.maxOfOrNull { it.value } ?: 0
-        return voteCounts
-            .filterValues { it == maxCount }
-            .keys
+        val maxCount = voteNamesByDate.maxOfOrNull { it.value.size } ?: 0
+        return voteNamesByDate
+            .filterValues { it.size == maxCount }
+            .toSortedMap()
+            .map { (date, voters) ->
+                val voterNames = voters.sorted()
+                MeetingDateVoteDetail(
+                    date = date,
+                    voteCount = voterNames.size,
+                    voterNames = voterNames,
+                )
+            }
     }
 }
