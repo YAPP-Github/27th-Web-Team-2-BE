@@ -297,11 +297,6 @@ class MeetingServiceTest : DescribeSpec({
 
                 val votingCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("voting-meeting") }
                 votingCard.leadingDate shouldBe LocalDate.of(2026, 2, 20)
-                votingCard.isLeadingDateTied shouldBe false
-                votingCard.topDateVoteDetails.size shouldBe 1
-                votingCard.topDateVoteDetails.single().date shouldBe LocalDate.of(2026, 2, 20)
-                votingCard.topDateVoteDetails.single().voteCount shouldBe 2
-                votingCard.topDateVoteDetails.single().voterNames shouldBe listOf("A", "B")
                 votingCard.completedVoteCount shouldBe 2
                 votingCard.totalVoteCount shouldBe 2
 

@@ -5,7 +5,6 @@ import com.nomoney.meeting.domain.MeetingStatus
 import com.nomoney.meeting.service.MeetingDashboard
 import com.nomoney.meeting.service.MeetingDashboardCard
 import com.nomoney.meeting.service.MeetingDashboardSummary
-import com.nomoney.meeting.service.MeetingDateVoteDetail
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
@@ -51,14 +50,8 @@ data class MeetingDashboardCardResponse(
     @Schema(description = "모임 상태", example = "VOTING")
     val status: MeetingStatus,
 
-    @Schema(description = "유력 날짜(최다 득표, 동률 시 가장 빠른 날짜)", example = "2026-02-20")
+    @Schema(description = "유력 날짜(최다 득표 기준)", example = "2026-02-20")
     val leadingDate: LocalDate?,
-
-    @Schema(description = "유력 날짜 공동 1위 여부", example = "false")
-    val isLeadingDateTied: Boolean,
-
-    @Schema(description = "최다 득표 날짜 상세 정보(동률 시 2개 이상)")
-    val topDateVoteDetails: List<MeetingDateVoteDetailResponse>,
 
     @Schema(description = "최종 확정 날짜", example = "2026-02-20")
     val finalizedDate: LocalDate?,
@@ -68,17 +61,6 @@ data class MeetingDashboardCardResponse(
 
     @Schema(description = "전체 투표 대상 인원 수", example = "6")
     val totalVoteCount: Int,
-)
-
-data class MeetingDateVoteDetailResponse(
-    @Schema(description = "날짜", example = "2026-02-20")
-    val date: LocalDate,
-
-    @Schema(description = "해당 날짜 투표 인원 수", example = "3")
-    val voteCount: Int,
-
-    @Schema(description = "해당 날짜 투표자 이름 목록", example = "[\"홍길동\", \"김철수\"]")
-    val voterNames: List<String>,
 )
 
 fun MeetingDashboard.toInProgressResponse(): InProgressMeetingDashboardResponse = InProgressMeetingDashboardResponse(
@@ -103,15 +85,7 @@ private fun MeetingDashboardCard.toResponse(): MeetingDashboardCardResponse = Me
     title = this.title,
     status = this.status,
     leadingDate = this.leadingDate,
-    isLeadingDateTied = this.isLeadingDateTied,
-    topDateVoteDetails = this.topDateVoteDetails.map { it.toResponse() },
     finalizedDate = this.finalizedDate,
     completedVoteCount = this.completedVoteCount,
     totalVoteCount = this.totalVoteCount,
-)
-
-private fun MeetingDateVoteDetail.toResponse(): MeetingDateVoteDetailResponse = MeetingDateVoteDetailResponse(
-    date = this.date,
-    voteCount = this.voteCount,
-    voterNames = this.voterNames,
 )
