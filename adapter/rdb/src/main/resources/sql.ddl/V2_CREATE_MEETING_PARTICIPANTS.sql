@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS meetings (
     meet_id VARCHAR(16) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     host_name VARCHAR(100) NULL,
+    host_user_id BIGINT NULL,
     max_participant_count INTEGER NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'VOTING',
     finalized_date DATE NULL,
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS meetings (
 CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
 CREATE INDEX IF NOT EXISTS idx_meetings_updated_at ON meetings(updated_at);
 CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
+CREATE INDEX IF NOT EXISTS idx_meetings_host_user_id ON meetings(host_user_id);
 
 -- Meeting 가능한 날짜들
 CREATE TABLE IF NOT EXISTS meeting_dates (

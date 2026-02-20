@@ -25,6 +25,9 @@ class MeetingJpaEntity : BaseJpaEntity() {
     @Column(name = "host_name", nullable = true)
     var hostName: String? = null
 
+    @Column(name = "host_user_id", nullable = true)
+    var hostUserId: Long? = null
+
     @Column(name = "max_participant_count", nullable = true)
     var maxParticipantCount: Int? = null
 
@@ -46,6 +49,7 @@ class MeetingJpaEntity : BaseJpaEntity() {
             meetId: String,
             title: String,
             hostName: String?,
+            hostUserId: Long? = null,
             maxParticipantCount: Int? = null,
             status: MeetingStatus = MeetingStatus.VOTING,
             finalizedDate: LocalDate? = null,
@@ -56,6 +60,7 @@ class MeetingJpaEntity : BaseJpaEntity() {
                 this.meetId = meetId
                 this.title = title
                 this.hostName = hostName
+                this.hostUserId = hostUserId
                 this.maxParticipantCount = maxParticipantCount
                 this.status = status
                 this.finalizedDate = finalizedDate
