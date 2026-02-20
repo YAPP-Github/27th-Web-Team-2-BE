@@ -156,14 +156,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                             title = "진행중 모임",
                             status = MeetingStatus.VOTING,
                             leadingDate = LocalDate.of(2026, 2, 20),
-                            isLeadingDateTied = false,
-                            topDateVoteDetails = listOf(
-                                MeetingDateVoteDetail(
-                                    date = LocalDate.of(2026, 2, 20),
-                                    voteCount = 2,
-                                    voterNames = listOf("A", "B"),
-                                ),
-                            ),
                             finalizedDate = null,
                             completedVoteCount = 2,
                             totalVoteCount = 4,
@@ -178,7 +170,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                 response.summary.votingCount shouldBe 1
                 response.meetings.size shouldBe 1
                 response.meetings.first().meetingId shouldBe MeetingId("meeting-a")
-                response.meetings.first().topDateVoteDetails.single().voteCount shouldBe 2
             }
         }
 
@@ -199,14 +190,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                             title = "확정 모임",
                             status = MeetingStatus.CONFIRMED,
                             leadingDate = finalizedDate,
-                            isLeadingDateTied = false,
-                            topDateVoteDetails = listOf(
-                                MeetingDateVoteDetail(
-                                    date = finalizedDate,
-                                    voteCount = 3,
-                                    voterNames = listOf("A", "B", "C"),
-                                ),
-                            ),
                             finalizedDate = finalizedDate,
                             completedVoteCount = 3,
                             totalVoteCount = 3,
