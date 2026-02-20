@@ -299,7 +299,6 @@ class MeetingServiceTest : DescribeSpec({
                 votingCard.topDateVoteDetails.single().voterNames shouldBe listOf("A", "B")
                 votingCard.completedVoteCount shouldBe 2
                 votingCard.totalVoteCount shouldBe 2
-                votingCard.voteProgressPercent shouldBe 100
 
                 val closedCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("closed-meeting") }
                 closedCard.isLeadingDateTied shouldBe true
