@@ -19,7 +19,6 @@ data class MeetingDashboard(
 
 data class MeetingDashboardSummary(
     val votingCount: Int,
-    val closedCount: Int,
     val confirmedCount: Int,
 )
 
