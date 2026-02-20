@@ -1,5 +1,6 @@
 package com.nomoney.meeting.adapter
 
+import com.nomoney.auth.domain.UserId
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.Participant
@@ -52,6 +53,7 @@ class MeetingAdapter(
             id = MeetingId(this.meetId),
             title = this.title,
             hostName = this.hostName,
+            hostUserId = this.hostUserId?.let(::UserId),
             dates = this.dates.map { it.availableDate }.toSet(),
             maxParticipantCount = this.maxParticipantCount,
             participants = this.participants.map { it.toDomain() },
@@ -75,6 +77,7 @@ class MeetingAdapter(
             meetId = this.id.value,
             title = this.title,
             hostName = this.hostName,
+            hostUserId = this.hostUserId?.value,
             maxParticipantCount = this.maxParticipantCount,
             status = this.status,
             finalizedDate = this.finalizedDate,
@@ -127,6 +130,7 @@ class MeetingAdapter(
 
     private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
         this.title = meeting.title
+        this.hostUserId = meeting.hostUserId?.value
         this.maxParticipantCount = meeting.maxParticipantCount
         this.status = meeting.status
         this.finalizedDate = meeting.finalizedDate

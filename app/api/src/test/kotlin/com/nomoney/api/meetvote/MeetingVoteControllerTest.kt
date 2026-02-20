@@ -4,6 +4,8 @@ import com.nomoney.api.meetvote.model.CloseMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
+import com.nomoney.auth.domain.User
+import com.nomoney.auth.domain.UserId
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -23,6 +25,7 @@ class MeetingVoteControllerTest : DescribeSpec({
 
     val meetingService = mockk<MeetingService>()
     val controller = MeetingVoteController(meetingService)
+    val authenticatedUser = User(UserId(1L))
 
     beforeTest {
         clearMocks(meetingService)
@@ -33,12 +36,12 @@ class MeetingVoteControllerTest : DescribeSpec({
         describe("POST /api/v1/meeting/close") {
             it("모임 마감 요청 시 CLOSED 상태를 반환한다") {
                 val meetingId = MeetingId("test-meeting")
-                every { meetingService.closeMeeting(meetingId) } returns fixtureMeeting(
+                every { meetingService.closeMeeting(meetingId, authenticatedUser.id) } returns fixtureMeeting(
                     id = meetingId,
                     status = MeetingStatus.CLOSED,
                 )
 
-                val response = controller.closeMeeting(CloseMeetingRequest(meetingId = meetingId))
+                val response = controller.closeMeeting(authenticatedUser, CloseMeetingRequest(meetingId = meetingId))
 
                 response.status shouldBe MeetingStatus.CLOSED
             }
@@ -48,13 +51,16 @@ class MeetingVoteControllerTest : DescribeSpec({
             it("모임 확정 요청 시 CONFIRMED 상태와 확정 날짜를 반환한다") {
                 val meetingId = MeetingId("test-meeting")
                 val finalizedDate = LocalDate.of(2026, 2, 20)
-                every { meetingService.finalizeMeeting(meetingId, finalizedDate) } returns fixtureMeeting(
+                every {
+                    meetingService.finalizeMeeting(meetingId, finalizedDate, authenticatedUser.id)
+                } returns fixtureMeeting(
                     id = meetingId,
                     status = MeetingStatus.CONFIRMED,
                     finalizedDate = finalizedDate,
                 )
 
                 val response = controller.finalizeMeeting(
+                    authenticatedUser,
                     FinalizeMeetingRequest(
                         meetingId = meetingId,
                         finalizedDate = finalizedDate,
@@ -79,6 +85,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                     meetingService.createMeeting(
                         title = request.title,
                         hostName = request.hostName,
+                        hostUserId = authenticatedUser.id,
                         dates = request.dates.toSet(),
                         maxParticipantCount = request.maxParticipantCount,
                     )
@@ -98,13 +105,14 @@ class MeetingVoteControllerTest : DescribeSpec({
                     status = MeetingStatus.VOTING,
                 )
 
-                val response = controller.createMeeting(request)
+                val response = controller.createMeeting(authenticatedUser, request)
 
                 response.id shouldBe meetingId
                 verify(exactly = 1) {
                     meetingService.createMeeting(
                         title = request.title,
                         hostName = request.hostName,
+                        hostUserId = authenticatedUser.id,
                         dates = request.dates.toSet(),
                         maxParticipantCount = 5,
                     )
@@ -115,7 +123,7 @@ class MeetingVoteControllerTest : DescribeSpec({
         describe("GET /api/v1/meeting/dashboard") {
             it("주최자 이름으로 대시보드를 조회한다") {
                 val hostName = "이파이"
-                every { meetingService.getHostMeetingDashboard(hostName) } returns MeetingDashboard(
+                every { meetingService.getHostMeetingDashboard(authenticatedUser.id) } returns MeetingDashboard(
                     hostName = hostName,
                     summary = MeetingDashboardSummary(
                         votingCount = 1,
@@ -139,7 +147,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                     confirmedMeetings = emptyList(),
                 )
 
-                val response = controller.getMeetingDashboard(hostName)
+                val response = controller.getMeetingDashboard(authenticatedUser)
 
                 response.hostName shouldBe hostName
                 response.summary.votingCount shouldBe 1
@@ -161,6 +169,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                 every {
                     meetingService.updateMeeting(
                         meetingId = request.meetingId,
+                        requesterUserId = authenticatedUser.id,
                         title = request.title,
                         dates = request.dates.toSet(),
                         maxParticipantCount = request.maxParticipantCount,
@@ -175,7 +184,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                     dates = request.dates.toSet(),
                 )
 
-                val response = controller.updateMeeting(request)
+                val response = controller.updateMeeting(authenticatedUser, request)
 
                 response.meetingId shouldBe meetingId
                 response.title shouldBe "수정된 모임"
@@ -195,6 +204,7 @@ private fun fixtureMeeting(
         id = id,
         title = "테스트 모임",
         hostName = "주최자",
+        hostUserId = UserId(1L),
         dates = setOf(LocalDate.of(2026, 2, 20)),
         maxParticipantCount = null,
         participants = emptyList(),

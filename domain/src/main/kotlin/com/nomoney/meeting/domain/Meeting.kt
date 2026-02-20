@@ -1,5 +1,6 @@
 package com.nomoney.meeting.domain
 
+import com.nomoney.auth.domain.UserId
 import java.time.LocalDate
 
 @JvmInline
@@ -15,6 +16,7 @@ data class Meeting(
     val id: MeetingId,
     val title: String,
     val hostName: String?, // 우선 nullable로 유지 -> 변경 예정
+    val hostUserId: UserId? = null,
     val dates: Set<LocalDate>,
     val maxParticipantCount: Int?,
     val participants: List<Participant>,
