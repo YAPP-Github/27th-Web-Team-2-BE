@@ -1,6 +1,8 @@
 package com.nomoney.meeting.service
 
+import com.nomoney.auth.domain.UserId
 import com.nomoney.exception.InvalidRequestException
+import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -32,6 +34,7 @@ class MeetingServiceTest : DescribeSpec({
                     meetingService.createMeeting(
                         title = "테스트 모임",
                         hostName = "주최자",
+                        hostUserId = UserId(1L),
                         dates = setOf(LocalDate.of(2026, 2, 20)),
                         maxParticipantCount = 0,
                     )
@@ -47,7 +50,7 @@ class MeetingServiceTest : DescribeSpec({
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
                 every { meetingRepository.save(any()) } answers { firstArg() }
 
-                val result = meetingService.closeMeeting(meeting.id)
+                val result = meetingService.closeMeeting(meeting.id, UserId(1L))
 
                 result.status shouldBe MeetingStatus.CLOSED
                 verify(exactly = 1) { meetingRepository.save(any()) }
@@ -57,7 +60,7 @@ class MeetingServiceTest : DescribeSpec({
                 val meeting = fixtureMeeting(status = MeetingStatus.CLOSED)
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
 
-                val result = meetingService.closeMeeting(meeting.id)
+                val result = meetingService.closeMeeting(meeting.id, UserId(1L))
 
                 result.status shouldBe MeetingStatus.CLOSED
                 verify(exactly = 0) { meetingRepository.save(any()) }
@@ -71,7 +74,21 @@ class MeetingServiceTest : DescribeSpec({
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
 
                 shouldThrow<InvalidRequestException> {
-                    meetingService.closeMeeting(meeting.id)
+                    meetingService.closeMeeting(meeting.id, UserId(1L))
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+
+            it("주최자가 아닌 사용자는 모임을 마감할 수 없다") {
+                val meeting = fixtureMeeting(
+                    status = MeetingStatus.VOTING,
+                    hostUserId = UserId(1L),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<UnauthorizedException> {
+                    meetingService.closeMeeting(meeting.id, UserId(2L))
                 }
 
                 verify(exactly = 0) { meetingRepository.save(any()) }
@@ -107,7 +124,7 @@ class MeetingServiceTest : DescribeSpec({
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
                 every { meetingRepository.save(any()) } answers { firstArg() }
 
-                val result = meetingService.finalizeMeeting(meeting.id, null)
+                val result = meetingService.finalizeMeeting(meeting.id, null, UserId(1L))
 
                 result.status shouldBe MeetingStatus.CONFIRMED
                 result.finalizedDate shouldBe LocalDate.of(2026, 2, 20)
@@ -137,7 +154,7 @@ class MeetingServiceTest : DescribeSpec({
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
 
                 shouldThrow<InvalidRequestException> {
-                    meetingService.finalizeMeeting(meeting.id, null)
+                    meetingService.finalizeMeeting(meeting.id, null, UserId(1L))
                 }
 
                 verify(exactly = 0) { meetingRepository.save(any()) }
@@ -167,7 +184,7 @@ class MeetingServiceTest : DescribeSpec({
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
                 every { meetingRepository.save(any()) } answers { firstArg() }
 
-                val result = meetingService.finalizeMeeting(meeting.id, selectedDate)
+                val result = meetingService.finalizeMeeting(meeting.id, selectedDate, UserId(1L))
 
                 result.status shouldBe MeetingStatus.CONFIRMED
                 result.finalizedDate shouldBe selectedDate
@@ -189,7 +206,7 @@ class MeetingServiceTest : DescribeSpec({
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
 
                 shouldThrow<InvalidRequestException> {
-                    meetingService.finalizeMeeting(meeting.id, LocalDate.of(2026, 2, 25))
+                    meetingService.finalizeMeeting(meeting.id, LocalDate.of(2026, 2, 25), UserId(1L))
                 }
 
                 verify(exactly = 0) { meetingRepository.save(any()) }
@@ -203,7 +220,7 @@ class MeetingServiceTest : DescribeSpec({
                 )
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
 
-                val result = meetingService.finalizeMeeting(meeting.id, finalizedDate)
+                val result = meetingService.finalizeMeeting(meeting.id, finalizedDate, UserId(1L))
 
                 result.status shouldBe MeetingStatus.CONFIRMED
                 result.finalizedDate shouldBe finalizedDate
@@ -252,7 +269,10 @@ class MeetingServiceTest : DescribeSpec({
                     ),
                 ).copy(hostName = hostName)
 
-                val othersMeeting = fixtureMeeting(id = MeetingId("other-host-meeting")).copy(hostName = "다른주최자")
+                val othersMeeting = fixtureMeeting(id = MeetingId("other-host-meeting")).copy(
+                    hostName = "다른주최자",
+                    hostUserId = UserId(2L),
+                )
 
                 every { meetingRepository.findAll() } returns listOf(
                     votingMeeting,
@@ -261,7 +281,7 @@ class MeetingServiceTest : DescribeSpec({
                     othersMeeting,
                 )
 
-                val dashboard = meetingService.getHostMeetingDashboard(hostName = hostName, today = today)
+                val dashboard = meetingService.getHostMeetingDashboard(hostUserId = UserId(1L), today = today)
 
                 dashboard.hostName shouldBe hostName
                 dashboard.summary.votingCount shouldBe 1
@@ -367,6 +387,7 @@ class MeetingServiceTest : DescribeSpec({
 
                 val result = meetingService.updateMeeting(
                     meetingId = meeting.id,
+                    requesterUserId = UserId(1L),
                     title = "수정된 모임명",
                     dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 22)),
                     maxParticipantCount = 3,
@@ -390,6 +411,7 @@ class MeetingServiceTest : DescribeSpec({
                 shouldThrow<InvalidRequestException> {
                     meetingService.updateMeeting(
                         meetingId = meeting.id,
+                        requesterUserId = UserId(1L),
                         title = "수정시도",
                         dates = setOf(LocalDate.of(2026, 2, 20)),
                         maxParticipantCount = 3,
@@ -413,6 +435,7 @@ class MeetingServiceTest : DescribeSpec({
                 shouldThrow<InvalidRequestException> {
                     meetingService.updateMeeting(
                         meetingId = meeting.id,
+                        requesterUserId = UserId(1L),
                         title = "수정시도",
                         dates = setOf(LocalDate.of(2026, 2, 20)),
                         maxParticipantCount = 2,
@@ -437,6 +460,7 @@ class MeetingServiceTest : DescribeSpec({
                 shouldThrow<InvalidRequestException> {
                     meetingService.updateMeeting(
                         meetingId = meeting.id,
+                        requesterUserId = UserId(1L),
                         title = "수정시도",
                         dates = setOf(LocalDate.of(2026, 2, 20)),
                         maxParticipantCount = 2,
@@ -461,6 +485,7 @@ class MeetingServiceTest : DescribeSpec({
                 shouldThrow<InvalidRequestException> {
                     meetingService.updateMeeting(
                         meetingId = meeting.id,
+                        requesterUserId = UserId(1L),
                         title = "수정시도",
                         dates = setOf(LocalDate.of(2026, 2, 20)),
                         maxParticipantCount = 1,
@@ -477,6 +502,7 @@ class MeetingServiceTest : DescribeSpec({
 private fun fixtureMeeting(
     id: MeetingId = MeetingId("meeting-1"),
     hostName: String = "주최자",
+    hostUserId: UserId = UserId(1L),
     status: MeetingStatus = MeetingStatus.VOTING,
     finalizedDate: LocalDate? = null,
     dates: Set<LocalDate> = setOf(LocalDate.of(2026, 2, 20)),
@@ -486,6 +512,7 @@ private fun fixtureMeeting(
         id = id,
         title = "테스트 모임",
         hostName = hostName,
+        hostUserId = hostUserId,
         dates = dates,
         maxParticipantCount = null,
         participants = participants,

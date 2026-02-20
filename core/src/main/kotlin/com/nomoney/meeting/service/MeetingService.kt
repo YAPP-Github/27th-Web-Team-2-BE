@@ -1,8 +1,10 @@
 package com.nomoney.meeting.service
 
+import com.nomoney.auth.domain.UserId
 import com.nomoney.exception.DuplicateContentException
 import com.nomoney.exception.InvalidRequestException
 import com.nomoney.exception.NotFoundException
+import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -23,6 +25,7 @@ class MeetingService(
     fun createMeeting(
         title: String,
         hostName: String?,
+        hostUserId: UserId,
         dates: Set<LocalDate>,
         maxParticipantCount: Int? = null,
     ): Meeting {
@@ -33,6 +36,7 @@ class MeetingService(
             id = meetingId,
             title = title,
             hostName = hostName,
+            hostUserId = hostUserId,
             dates = dates,
             maxParticipantCount = maxParticipantCount,
             participants = emptyList(),
@@ -65,6 +69,7 @@ class MeetingService(
 
     fun updateMeeting(
         meetingId: MeetingId,
+        requesterUserId: UserId,
         title: String,
         dates: Set<LocalDate>,
         maxParticipantCount: Int?,
@@ -72,6 +77,7 @@ class MeetingService(
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
 
         if (meeting.status != MeetingStatus.VOTING) {
             throw InvalidRequestException(
@@ -111,11 +117,11 @@ class MeetingService(
     }
 
     fun getHostMeetingDashboard(
-        hostName: String,
+        hostUserId: UserId,
         today: LocalDate = LocalDate.now(),
     ): MeetingDashboard {
         val meetings = meetingRepository.findAll()
-            .filter { it.hostName == hostName }
+            .filter { it.hostUserId == hostUserId }
 
         val dashboardCards = meetings.map { meeting ->
             val topDates = topVotedDates(meeting)
@@ -150,7 +156,7 @@ class MeetingService(
         }
 
         return MeetingDashboard(
-            hostName = hostName,
+            hostName = meetings.firstNotNullOfOrNull { it.hostName } ?: "",
             summary = MeetingDashboardSummary(
                 votingCount = meetings.count { it.status == MeetingStatus.VOTING },
                 closedCount = meetings.count { it.status == MeetingStatus.CLOSED },
@@ -261,9 +267,13 @@ class MeetingService(
         }
     }
 
-    fun closeMeeting(meetingId: MeetingId): Meeting {
+    fun closeMeeting(
+        meetingId: MeetingId,
+        requesterUserId: UserId,
+    ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
 
         return when (meeting.status) {
             MeetingStatus.VOTING -> {
@@ -285,9 +295,11 @@ class MeetingService(
     fun finalizeMeeting(
         meetingId: MeetingId,
         selectedDate: LocalDate?,
+        requesterUserId: UserId,
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
 
         if (meeting.status == MeetingStatus.CONFIRMED) {
             return if (selectedDate == null || selectedDate == meeting.finalizedDate) {
@@ -421,6 +433,22 @@ class MeetingService(
             throw InvalidRequestException(
                 "기존 투표 데이터와 충돌하는 후보 날짜 변경입니다.",
                 "meetingId=${meetingId.value}, invalidParticipants=$invalidParticipants",
+            )
+        }
+    }
+
+    private fun assertMeetingHostOwnership(
+        meeting: Meeting,
+        requesterUserId: UserId,
+    ) {
+        val hostUserId = meeting.hostUserId
+            ?: throw UnauthorizedException(
+                "모임 주최자 정보가 없습니다. meetingId=${meeting.id.value}",
+            )
+
+        if (hostUserId != requesterUserId) {
+            throw UnauthorizedException(
+                "모임 주최자만 요청할 수 있습니다. meetingId=${meeting.id.value}, requesterUserId=${requesterUserId.value}, hostUserId=${hostUserId.value}",
             )
         }
     }

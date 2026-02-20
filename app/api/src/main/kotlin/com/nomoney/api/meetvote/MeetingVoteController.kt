@@ -17,6 +17,7 @@ import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toResponse
 import com.nomoney.api.meetvote.model.toSummaryResponse
 import com.nomoney.api.meetvote.model.toUpdateResponse
+import com.nomoney.auth.domain.User
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
@@ -57,21 +58,21 @@ class MeetingVoteController(
     @Operation(summary = "주최자 대시보드 조회", description = "주최자 기준 진행중/확정 모임 목록과 요약 정보를 조회합니다.")
     @GetMapping("/api/v1/meeting/dashboard")
     fun getMeetingDashboard(
-        @Parameter(description = "주최자 이름", required = true, example = "이파이")
-        @RequestParam
-        hostName: String,
+        user: User,
     ): MeetingDashboardResponse {
-        return meetingService.getHostMeetingDashboard(hostName).toResponse()
+        return meetingService.getHostMeetingDashboard(user.id).toResponse()
     }
 
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성하고 고유 ID를 발급합니다")
     @PostMapping("/api/v1/meeting")
     fun createMeeting(
+        user: User,
         @RequestBody request: CreateMeetingRequest,
     ): CreateMeetingResponse {
         val meeting = meetingService.createMeeting(
             title = request.title,
             hostName = request.hostName,
+            hostUserId = user.id,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
         )
@@ -90,10 +91,12 @@ class MeetingVoteController(
     @Operation(summary = "모임 수정", description = "모임 제목, 최대 인원, 후보 날짜, 삭제할 참여자를 반영해 모임을 수정합니다.")
     @PutMapping("/api/v1/meeting")
     fun updateMeeting(
+        user: User,
         @RequestBody request: UpdateMeetingRequest,
     ): UpdateMeetingResponse {
         val meeting = meetingService.updateMeeting(
             meetingId = request.meetingId,
+            requesterUserId = user.id,
             title = request.title,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
@@ -147,9 +150,13 @@ class MeetingVoteController(
     @Operation(summary = "모임 마감", description = "모임 상태를 투표중에서 마감 상태로 전환합니다.")
     @PostMapping("/api/v1/meeting/close")
     fun closeMeeting(
+        user: User,
         @RequestBody request: CloseMeetingRequest,
     ): CloseMeetingResponse {
-        val meeting = meetingService.closeMeeting(request.meetingId)
+        val meeting = meetingService.closeMeeting(
+            meetingId = request.meetingId,
+            requesterUserId = user.id,
+        )
         return CloseMeetingResponse(status = meeting.status)
     }
 
@@ -159,9 +166,14 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/meeting/finalize")
     fun finalizeMeeting(
+        user: User,
         @RequestBody request: FinalizeMeetingRequest,
     ): FinalizeMeetingResponse {
-        val meeting = meetingService.finalizeMeeting(request.meetingId, request.finalizedDate)
+        val meeting = meetingService.finalizeMeeting(
+            meetingId = request.meetingId,
+            selectedDate = request.finalizedDate,
+            requesterUserId = user.id,
+        )
         return FinalizeMeetingResponse(
             status = meeting.status,
             finalizedDate = requireNotNull(meeting.finalizedDate) {
