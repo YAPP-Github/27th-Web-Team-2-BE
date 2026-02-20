@@ -2,18 +2,21 @@ package com.nomoney.api.meetvote
 
 import com.nomoney.api.meetvote.model.CloseMeetingRequest
 import com.nomoney.api.meetvote.model.CloseMeetingResponse
+import com.nomoney.api.meetvote.model.ConfirmedMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingResponse
+import com.nomoney.api.meetvote.model.InProgressMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
-import com.nomoney.api.meetvote.model.MeetingDashboardResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
+import com.nomoney.api.meetvote.model.toConfirmedResponse
+import com.nomoney.api.meetvote.model.toInProgressResponse
 import com.nomoney.api.meetvote.model.toResponse
 import com.nomoney.api.meetvote.model.toSummaryResponse
 import com.nomoney.api.meetvote.model.toUpdateResponse
@@ -55,12 +58,20 @@ class MeetingVoteController(
             .map { it.toSummaryResponse() }
     }
 
-    @Operation(summary = "주최자 대시보드 조회", description = "주최자 기준 진행중/확정 모임 목록과 요약 정보를 조회합니다.")
-    @GetMapping("/api/v1/meeting/dashboard")
-    fun getMeetingDashboard(
+    @Operation(summary = "주최자 진행중 모임 대시보드 조회", description = "주최자 기준 진행중(VOTING/CLOSED) 모임 목록과 요약 정보를 조회합니다.")
+    @GetMapping("/api/v1/meeting/dashboard/in-progress")
+    fun getInProgressMeetingDashboard(
         user: User,
-    ): MeetingDashboardResponse {
-        return meetingService.getHostMeetingDashboard(user.id).toResponse()
+    ): InProgressMeetingDashboardResponse {
+        return meetingService.getHostMeetingDashboard(user.id).toInProgressResponse()
+    }
+
+    @Operation(summary = "주최자 확정 모임 대시보드 조회", description = "주최자 기준 확정(CONFIRMED) 모임 목록과 요약 정보를 조회합니다.")
+    @GetMapping("/api/v1/meeting/dashboard/confirmed")
+    fun getConfirmedMeetingDashboard(
+        user: User,
+    ): ConfirmedMeetingDashboardResponse {
+        return meetingService.getHostMeetingDashboard(user.id).toConfirmedResponse()
     }
 
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성하고 고유 ID를 발급합니다")

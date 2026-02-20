@@ -9,8 +9,8 @@ import com.nomoney.meeting.service.MeetingDateVoteDetail
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
-@Schema(description = "주최자 대시보드 조회 응답")
-data class MeetingDashboardResponse(
+@Schema(description = "주최자 진행 중 모임 대시보드 조회 응답")
+data class InProgressMeetingDashboardResponse(
     @Schema(description = "주최자 이름", example = "이파이")
     val hostName: String,
 
@@ -18,10 +18,19 @@ data class MeetingDashboardResponse(
     val summary: MeetingDashboardSummaryResponse,
 
     @Schema(description = "진행 중 모임 목록(VOTING/CLOSED)")
-    val inProgressMeetings: List<MeetingDashboardCardResponse>,
+    val meetings: List<MeetingDashboardCardResponse>,
+)
+
+@Schema(description = "주최자 확정 모임 대시보드 조회 응답")
+data class ConfirmedMeetingDashboardResponse(
+    @Schema(description = "주최자 이름", example = "이파이")
+    val hostName: String,
+
+    @Schema(description = "상태별 모임 요약")
+    val summary: MeetingDashboardSummaryResponse,
 
     @Schema(description = "확정된 모임 목록(CONFIRMED)")
-    val confirmedMeetings: List<MeetingDashboardCardResponse>,
+    val meetings: List<MeetingDashboardCardResponse>,
 )
 
 data class MeetingDashboardSummaryResponse(
@@ -78,11 +87,16 @@ data class MeetingDateVoteDetailResponse(
     val voterNames: List<String>,
 )
 
-fun MeetingDashboard.toResponse(): MeetingDashboardResponse = MeetingDashboardResponse(
+fun MeetingDashboard.toInProgressResponse(): InProgressMeetingDashboardResponse = InProgressMeetingDashboardResponse(
     hostName = this.hostName,
     summary = this.summary.toResponse(),
-    inProgressMeetings = this.inProgressMeetings.map { it.toResponse() },
-    confirmedMeetings = this.confirmedMeetings.map { it.toResponse() },
+    meetings = this.inProgressMeetings.map { it.toResponse() },
+)
+
+fun MeetingDashboard.toConfirmedResponse(): ConfirmedMeetingDashboardResponse = ConfirmedMeetingDashboardResponse(
+    hostName = this.hostName,
+    summary = this.summary.toResponse(),
+    meetings = this.confirmedMeetings.map { it.toResponse() },
 )
 
 private fun MeetingDashboardSummary.toResponse(): MeetingDashboardSummaryResponse = MeetingDashboardSummaryResponse(
