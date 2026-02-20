@@ -23,7 +23,7 @@ class KakaoOAuthClient(
     override fun supports(provider: SocialProvider): Boolean =
         provider == SocialProvider.KAKAO
 
-    override fun getAccessToken(authorizationCode: String): String {
+    override fun getAccessToken(authorizationCode: String, state: String?): String {
         val url = "https://kauth.kakao.com/oauth/token"
 
         val headers = HttpHeaders().apply {
@@ -35,6 +35,7 @@ class KakaoOAuthClient(
             add("client_secret", properties.clientSecret)
             add("redirect_uri", properties.redirectUri)
             add("code", authorizationCode)
+            if(state != null) add("state", state)
         }
 
         val response = try {
