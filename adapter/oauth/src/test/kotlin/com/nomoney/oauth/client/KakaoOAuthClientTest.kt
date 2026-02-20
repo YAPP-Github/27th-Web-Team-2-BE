@@ -57,7 +57,32 @@ class KakaoOAuthClientTest : DescribeSpec({
                 } returns kakaoTokenResponse
 
                 // when
-                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode)
+                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode, null)
+
+                // then
+                accessToken shouldBe "test-kakao-access-token"
+            }
+
+            it("state 값이 있을 때 요청 body에 state를 포함하여 액세스 토큰을 발급한다") {
+                // given
+                val authorizationCode = "test-authorization-code"
+                val state = "random-csrf-state"
+                val kakaoTokenResponse = KakaoTokenResponse(
+                    accessToken = "test-kakao-access-token",
+                    expiresIn = 21599,
+                    tokenType = "bearer",
+                )
+
+                every {
+                    restTemplate.postForObject(
+                        "https://kauth.kakao.com/oauth/token",
+                        any<HttpEntity<*>>(),
+                        KakaoTokenResponse::class.java,
+                    )
+                } returns kakaoTokenResponse
+
+                // when
+                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode, state)
 
                 // then
                 accessToken shouldBe "test-kakao-access-token"
@@ -77,7 +102,7 @@ class KakaoOAuthClientTest : DescribeSpec({
 
                 // when & then
                 shouldThrow<RuntimeException> {
-                    kakaoOAuthClient.getAccessToken(authorizationCode)
+                    kakaoOAuthClient.getAccessToken(authorizationCode, null)
                 }
             }
 
@@ -95,7 +120,7 @@ class KakaoOAuthClientTest : DescribeSpec({
 
                 // when & then
                 shouldThrow<RuntimeException> {
-                    kakaoOAuthClient.getAccessToken(authorizationCode)
+                    kakaoOAuthClient.getAccessToken(authorizationCode, null)
                 }
             }
         }

@@ -15,13 +15,13 @@ class SocialAuthService(
     private val authService: AuthService,
     private val socialOAuthClientRegistry: SocialOAuthClientRegistry,
 ) {
-    fun loginWithSocialProvider(provider: SocialProvider, authorizationCode: String): TokenPair {
+    fun loginWithSocialProvider(provider: SocialProvider, authorizationCode: String, state: String?): TokenPair {
         return try {
             // 1. OAuth Client 조회
             val oauthClient = socialOAuthClientRegistry.getClient(provider)
 
             // 2. Authorization Code → Google Access Token
-            val googleAccessToken = oauthClient.getAccessToken(authorizationCode)
+            val googleAccessToken = oauthClient.getAccessToken(authorizationCode, state)
 
             // 3. Google Access Token → 사용자 정보
             val socialUserInfo = oauthClient.getUserInfo(googleAccessToken)

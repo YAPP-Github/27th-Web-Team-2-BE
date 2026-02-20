@@ -1,8 +1,13 @@
 {
   "permissions": {
     "allow": [
+<<<<<<< HEAD
       "Bash(./gradlew test:*)",
       "Bash(./gradlew :core:test:*)"
+=======
+      "Bash(./gradlew :app:api:test:*)",
+      "Bash(./gradlew test:*)"
+>>>>>>> feat/61
     ]
   }
 }
