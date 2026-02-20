@@ -231,7 +231,6 @@ class MeetingServiceTest : DescribeSpec({
         describe("getHostMeetingDashboard") {
             it("주최자 모임을 상태별로 분리하고 요약/카드 정보를 계산한다") {
                 val hostName = "주최자A"
-                val today = LocalDate.of(2026, 2, 15)
 
                 val votingMeeting = fixtureMeeting(
                     id = MeetingId("voting-meeting"),
@@ -281,7 +280,7 @@ class MeetingServiceTest : DescribeSpec({
                     othersMeeting,
                 )
 
-                val dashboard = meetingService.getHostMeetingDashboard(hostUserId = UserId(1L), today = today)
+                val dashboard = meetingService.getHostMeetingDashboard(hostUserId = UserId(1L))
 
                 dashboard.hostName shouldBe hostName
                 dashboard.summary.votingCount shouldBe 1
@@ -294,19 +293,25 @@ class MeetingServiceTest : DescribeSpec({
                 val votingCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("voting-meeting") }
                 votingCard.leadingDate shouldBe LocalDate.of(2026, 2, 20)
                 votingCard.isLeadingDateTied shouldBe false
-                votingCard.dDay shouldBe 5
+                votingCard.topDateVoteDetails.size shouldBe 1
+                votingCard.topDateVoteDetails.single().date shouldBe LocalDate.of(2026, 2, 20)
+                votingCard.topDateVoteDetails.single().voteCount shouldBe 2
+                votingCard.topDateVoteDetails.single().voterNames shouldBe listOf("A", "B")
                 votingCard.completedVoteCount shouldBe 2
                 votingCard.totalVoteCount shouldBe 2
                 votingCard.voteProgressPercent shouldBe 100
 
                 val closedCard = dashboard.inProgressMeetings.first { it.meetingId == MeetingId("closed-meeting") }
                 closedCard.isLeadingDateTied shouldBe true
-                closedCard.dDay shouldBe 1
+                closedCard.topDateVoteDetails.size shouldBe 2
+                closedCard.topDateVoteDetails.map { it.date } shouldBe listOf(
+                    LocalDate.of(2026, 2, 16),
+                    LocalDate.of(2026, 2, 17),
+                )
 
                 val confirmedCard = dashboard.confirmedMeetings.single()
                 confirmedCard.meetingId shouldBe MeetingId("confirmed-meeting")
                 confirmedCard.finalizedDate shouldBe LocalDate.of(2026, 2, 18)
-                confirmedCard.dDay shouldBe 3
             }
         }
 

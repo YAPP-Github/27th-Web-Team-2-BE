@@ -4,6 +4,12 @@ import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
 import java.time.LocalDate
 
+data class MeetingDateVoteDetail(
+    val date: LocalDate,
+    val voteCount: Int,
+    val voterNames: List<String>,
+)
+
 data class MeetingDashboard(
     val hostName: String,
     val summary: MeetingDashboardSummary,
@@ -23,8 +29,8 @@ data class MeetingDashboardCard(
     val status: MeetingStatus,
     val leadingDate: LocalDate?,
     val isLeadingDateTied: Boolean,
+    val topDateVoteDetails: List<MeetingDateVoteDetail>,
     val finalizedDate: LocalDate?,
-    val dDay: Int?,
     val completedVoteCount: Int,
     val totalVoteCount: Int,
     val voteProgressPercent: Int,
