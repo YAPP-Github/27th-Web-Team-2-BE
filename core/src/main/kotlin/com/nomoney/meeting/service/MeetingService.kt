@@ -133,12 +133,6 @@ class MeetingService(
             val completedVoteCount = meeting.participants.count { it.hasVoted }
             val totalVoteCount = (meeting.maxParticipantCount ?: meeting.participants.size)
                 .coerceAtLeast(completedVoteCount)
-            val voteProgressPercent = if (totalVoteCount == 0) {
-                0
-            } else {
-                (completedVoteCount * 100) / totalVoteCount
-            }
-
             MeetingDashboardCard(
                 meetingId = meeting.id,
                 title = meeting.title,
@@ -149,7 +143,6 @@ class MeetingService(
                 finalizedDate = meeting.finalizedDate,
                 completedVoteCount = completedVoteCount,
                 totalVoteCount = totalVoteCount,
-                voteProgressPercent = voteProgressPercent,
             ) to referenceDate
         }
 

@@ -148,7 +148,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                             finalizedDate = null,
                             completedVoteCount = 2,
                             totalVoteCount = 4,
-                            voteProgressPercent = 50,
                         ),
                     ),
                     confirmedMeetings = emptyList(),
@@ -193,7 +192,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                             finalizedDate = finalizedDate,
                             completedVoteCount = 3,
                             totalVoteCount = 3,
-                            voteProgressPercent = 100,
                         ),
                     ),
                 )
