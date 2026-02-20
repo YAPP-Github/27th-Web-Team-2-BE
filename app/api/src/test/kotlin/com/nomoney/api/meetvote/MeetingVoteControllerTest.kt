@@ -121,8 +121,8 @@ class MeetingVoteControllerTest : DescribeSpec({
             }
         }
 
-        describe("GET /api/v1/meeting/dashboard") {
-            it("주최자 이름으로 대시보드를 조회한다") {
+        describe("GET /api/v1/meeting/dashboard/in-progress") {
+            it("주최자 진행중 모임 대시보드를 조회한다") {
                 val hostName = "이파이"
                 every { meetingService.getHostMeetingDashboard(authenticatedUser.id) } returns MeetingDashboard(
                     hostName = hostName,
@@ -154,13 +154,57 @@ class MeetingVoteControllerTest : DescribeSpec({
                     confirmedMeetings = emptyList(),
                 )
 
-                val response = controller.getMeetingDashboard(authenticatedUser)
+                val response = controller.getInProgressMeetingDashboard(authenticatedUser)
 
                 response.hostName shouldBe hostName
                 response.summary.votingCount shouldBe 1
-                response.inProgressMeetings.size shouldBe 1
-                response.inProgressMeetings.first().meetingId shouldBe MeetingId("meeting-a")
-                response.inProgressMeetings.first().topDateVoteDetails.single().voteCount shouldBe 2
+                response.meetings.size shouldBe 1
+                response.meetings.first().meetingId shouldBe MeetingId("meeting-a")
+                response.meetings.first().topDateVoteDetails.single().voteCount shouldBe 2
+            }
+        }
+
+        describe("GET /api/v1/meeting/dashboard/confirmed") {
+            it("주최자 확정 모임 대시보드를 조회한다") {
+                val hostName = "이파이"
+                val finalizedDate = LocalDate.of(2026, 2, 25)
+                every { meetingService.getHostMeetingDashboard(authenticatedUser.id) } returns MeetingDashboard(
+                    hostName = hostName,
+                    summary = MeetingDashboardSummary(
+                        votingCount = 1,
+                        closedCount = 0,
+                        confirmedCount = 1,
+                    ),
+                    inProgressMeetings = emptyList(),
+                    confirmedMeetings = listOf(
+                        MeetingDashboardCard(
+                            meetingId = MeetingId("meeting-confirmed"),
+                            title = "확정 모임",
+                            status = MeetingStatus.CONFIRMED,
+                            leadingDate = finalizedDate,
+                            isLeadingDateTied = false,
+                            topDateVoteDetails = listOf(
+                                MeetingDateVoteDetail(
+                                    date = finalizedDate,
+                                    voteCount = 3,
+                                    voterNames = listOf("A", "B", "C"),
+                                ),
+                            ),
+                            finalizedDate = finalizedDate,
+                            completedVoteCount = 3,
+                            totalVoteCount = 3,
+                            voteProgressPercent = 100,
+                        ),
+                    ),
+                )
+
+                val response = controller.getConfirmedMeetingDashboard(authenticatedUser)
+
+                response.hostName shouldBe hostName
+                response.summary.confirmedCount shouldBe 1
+                response.meetings.size shouldBe 1
+                response.meetings.first().meetingId shouldBe MeetingId("meeting-confirmed")
+                response.meetings.first().finalizedDate shouldBe finalizedDate
             }
         }
 
