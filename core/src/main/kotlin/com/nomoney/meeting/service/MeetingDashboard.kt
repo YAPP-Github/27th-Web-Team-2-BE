@@ -27,8 +27,6 @@ data class MeetingDashboardCard(
     val title: String,
     val status: MeetingStatus,
     val leadingDate: LocalDate?,
-    val isLeadingDateTied: Boolean,
-    val topDateVoteDetails: List<MeetingDateVoteDetail>,
     val finalizedDate: LocalDate?,
     val completedVoteCount: Int,
     val totalVoteCount: Int,

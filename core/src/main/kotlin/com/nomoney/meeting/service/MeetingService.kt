@@ -138,8 +138,6 @@ class MeetingService(
                 title = meeting.title,
                 status = meeting.status,
                 leadingDate = leadingDate,
-                isLeadingDateTied = topDateVoteDetails.size > 1,
-                topDateVoteDetails = topDateVoteDetails,
                 finalizedDate = meeting.finalizedDate,
                 completedVoteCount = completedVoteCount,
                 totalVoteCount = totalVoteCount,
