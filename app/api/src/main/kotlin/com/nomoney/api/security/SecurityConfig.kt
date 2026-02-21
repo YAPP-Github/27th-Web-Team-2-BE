@@ -1,7 +1,10 @@
 package com.nomoney.api.security
 
+import com.nomoney.support.logging.ApiLoggingFilter
+import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.Ordered
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
@@ -35,5 +38,16 @@ class SecurityConfig {
         return UrlBasedCorsConfigurationSource().apply {
             registerCorsConfiguration("/**", configuration)
         }
+    }
+
+    @Bean
+    fun apiLogFilter(filter: ApiLoggingFilter): FilterRegistrationBean<ApiLoggingFilter> {
+        val bean = FilterRegistrationBean<ApiLoggingFilter>()
+
+        bean.filter = filter
+        bean.order = Ordered.HIGHEST_PRECEDENCE
+        bean.urlPatterns = listOf("/api/*")
+
+        return bean
     }
 }
