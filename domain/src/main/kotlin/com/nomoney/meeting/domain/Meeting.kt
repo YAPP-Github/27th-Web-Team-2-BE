@@ -20,6 +20,7 @@ data class Meeting(
     val dates: Set<LocalDate>,
     val maxParticipantCount: Int?,
     val participants: List<Participant>,
+    val memo: String? = null,
     val status: MeetingStatus = MeetingStatus.VOTING,
     val finalizedDate: LocalDate? = null,
 ) {

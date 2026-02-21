@@ -19,6 +19,10 @@ import org.springframework.stereotype.Service
 class MeetingService(
     private val meetingRepository: MeetingRepository,
 ) {
+    companion object {
+        private const val MAX_MEMO_LENGTH = 200
+    }
+
     private val random = SecureRandom()
 
     fun createMeeting(
@@ -47,6 +51,26 @@ class MeetingService(
 
     fun getMeetingInfo(meetingId: MeetingId): Meeting? {
         return meetingRepository.findByMeetingId(meetingId)
+    }
+
+    fun saveMeetingMemo(
+        meetingId: MeetingId,
+        requesterUserId: UserId,
+        memo: String,
+    ): Boolean {
+        if (memo.length > MAX_MEMO_LENGTH) {
+            throw InvalidRequestException(
+                "메모는 200자까지 입력 가능합니다.",
+                "meetingId=${meetingId.value}, memoLength=${memo.length}",
+            )
+        }
+
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
+
+        meetingRepository.save(meeting.copy(memo = memo))
+        return true
     }
 
     fun getMeetingInfoSortedByParticipantUpdatedAt(meetingId: MeetingId): Meeting? {
