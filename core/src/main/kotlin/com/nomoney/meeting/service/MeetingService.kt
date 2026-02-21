@@ -90,6 +90,23 @@ class MeetingService(
         return meetingRepository.findAll()
     }
 
+    fun getHostMeetingDetail(
+        meetingId: MeetingId,
+        requesterUserId: UserId,
+    ): MeetingHostDetail {
+        val meeting = getMeetingInfoSortedByParticipantUpdatedAt(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
+
+        val totalParticipantCount = meeting.maxParticipantCount ?: meeting.participants.size
+        val votedParticipantCount = meeting.participants.count { it.hasVoted }
+
+        return MeetingHostDetail(
+            meeting = meeting,
+            notVotedParticipantCount = (totalParticipantCount - votedParticipantCount).coerceAtLeast(0),
+        )
+    }
+
     fun updateMeeting(
         meetingId: MeetingId,
         requesterUserId: UserId,

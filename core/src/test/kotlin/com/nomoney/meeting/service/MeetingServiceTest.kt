@@ -2,6 +2,7 @@ package com.nomoney.meeting.service
 
 import com.nomoney.auth.domain.UserId
 import com.nomoney.exception.InvalidRequestException
+import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -76,6 +77,41 @@ class MeetingServiceTest : DescribeSpec({
                 }
 
                 verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+        }
+
+        describe("getHostMeetingDetail") {
+            it("주최자 조회 시 미투표 인원과 메모를 반환한다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("host-detail-meeting"),
+                    dates = setOf(LocalDate.of(2026, 2, 20)),
+                    participants = listOf(
+                        Participant(id = ParticipantId(1L), name = "주최자", voteDates = emptySet(), hasVoted = true),
+                        Participant(id = ParticipantId(2L), name = "참여자A", voteDates = emptySet(), hasVoted = false),
+                    ),
+                ).copy(maxParticipantCount = 5, memo = "메모 내용")
+
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                val result = meetingService.getHostMeetingDetail(
+                    meetingId = meeting.id,
+                    requesterUserId = UserId(1L),
+                )
+
+                result.meeting.memo shouldBe "메모 내용"
+                result.notVotedParticipantCount shouldBe 4
+            }
+
+            it("주최자가 아닌 사용자가 조회하면 예외가 발생한다") {
+                val meeting = fixtureMeeting(id = MeetingId("host-detail-meeting"))
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<UnauthorizedException> {
+                    meetingService.getHostMeetingDetail(
+                        meetingId = meeting.id,
+                        requesterUserId = UserId(2L),
+                    )
+                }
             }
         }
 

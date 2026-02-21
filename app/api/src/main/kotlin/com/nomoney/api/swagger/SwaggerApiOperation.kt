@@ -16,6 +16,8 @@ object SwaggerApiOperation {
     object MeetingVote {
         const val GET_MEETING_INFO_SUMMARY = "모임 정보 조회"
         const val GET_MEETING_INFO_DESCRIPTION = "모임 ID로 모임 정보와 참여자들의 투표 현황을 조회합니다"
+        const val GET_HOST_MEETING_DETAIL_SUMMARY = "주최자용 모임 상세 조회"
+        const val GET_HOST_MEETING_DETAIL_DESCRIPTION = "토큰 사용자 검증 후 주최자 본인 모임 상세를 조회합니다. 미투표 인원 수와 메모를 함께 반환합니다."
         const val GET_MEETING_LIST_SUMMARY = "모임 목록 조회"
         const val GET_MEETING_LIST_DESCRIPTION = "모든 모임의 ID, 제목, 주최자를 조회합니다"
         const val GET_IN_PROGRESS_DASHBOARD_SUMMARY = "주최자 진행중 모임 대시보드 조회"
