@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS meetings (
 );
 CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
 CREATE INDEX IF NOT EXISTS idx_meetings_updated_at ON meetings(updated_at);
-CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
 CREATE INDEX IF NOT EXISTS idx_meetings_host_user_id ON meetings(host_user_id);
 
 -- Meeting 가능한 날짜들
