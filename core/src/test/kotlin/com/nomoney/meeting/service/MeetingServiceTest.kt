@@ -2,6 +2,7 @@ package com.nomoney.meeting.service
 
 import com.nomoney.auth.domain.UserId
 import com.nomoney.exception.InvalidRequestException
+import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -42,6 +43,78 @@ class MeetingServiceTest : DescribeSpec({
                 verify(exactly = 0) { meetingRepository.save(any()) }
             }
         }
+
+        describe("saveMeetingMemo") {
+            it("주최자가 200자 이하 메모를 저장하면 true를 반환한다") {
+                val meeting = fixtureMeeting(id = MeetingId("memo-meeting"))
+                val memo = "회의실 예약 완료"
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                every { meetingRepository.save(any()) } answers { firstArg() }
+
+                val result = meetingService.saveMeetingMemo(
+                    meetingId = meeting.id,
+                    requesterUserId = UserId(1L),
+                    memo = memo,
+                )
+
+                result shouldBe true
+                verify(exactly = 1) {
+                    meetingRepository.save(
+                        match { savedMeeting ->
+                            savedMeeting.id == meeting.id && savedMeeting.memo == memo
+                        },
+                    )
+                }
+            }
+
+            it("200자를 초과한 메모를 저장하면 예외가 발생한다") {
+                shouldThrow<InvalidRequestException> {
+                    meetingService.saveMeetingMemo(
+                        meetingId = MeetingId("memo-meeting"),
+                        requesterUserId = UserId(1L),
+                        memo = "a".repeat(201),
+                    )
+                }
+
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+        }
+
+        describe("getHostMeetingDetail") {
+            it("주최자 조회 시 미투표 인원과 메모를 반환한다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("host-detail-meeting"),
+                    dates = setOf(LocalDate.of(2026, 2, 20)),
+                    participants = listOf(
+                        Participant(id = ParticipantId(1L), name = "주최자", voteDates = emptySet(), hasVoted = true),
+                        Participant(id = ParticipantId(2L), name = "참여자A", voteDates = emptySet(), hasVoted = false),
+                    ),
+                ).copy(maxParticipantCount = 5, memo = "메모 내용")
+
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                val result = meetingService.getHostMeetingDetail(
+                    meetingId = meeting.id,
+                    requesterUserId = UserId(1L),
+                )
+
+                result.meeting.memo shouldBe "메모 내용"
+                result.notVotedParticipantCount shouldBe 4
+            }
+
+            it("주최자가 아닌 사용자가 조회하면 예외가 발생한다") {
+                val meeting = fixtureMeeting(id = MeetingId("host-detail-meeting"))
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                shouldThrow<UnauthorizedException> {
+                    meetingService.getHostMeetingDetail(
+                        meetingId = meeting.id,
+                        requesterUserId = UserId(2L),
+                    )
+                }
+            }
+        }
+
         describe("finalizeMeeting") {
             it("단일 최다 득표 날짜가 있으면 finalizedDate 없이 확정된다") {
                 val meeting = fixtureMeeting(

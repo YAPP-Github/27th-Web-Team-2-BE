@@ -3,6 +3,7 @@ package com.nomoney.api.meetvote
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
+import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.auth.domain.User
 import com.nomoney.auth.domain.UserId
@@ -14,6 +15,7 @@ import com.nomoney.meeting.service.MeetingDashboardCard
 import com.nomoney.meeting.service.MeetingDashboardSummary
 import com.nomoney.meeting.service.MeetingDateVoteDetail
 import com.nomoney.meeting.service.MeetingFinalizePreview
+import com.nomoney.meeting.service.MeetingHostDetail
 import com.nomoney.meeting.service.MeetingService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -34,6 +36,36 @@ class MeetingVoteControllerTest : DescribeSpec({
     }
 
     describe("MeetingVoteController") {
+        describe("GET /api/v1/host/meeting") {
+            it("주최자용 모임 상세 정보를 조회한다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("host-detail"),
+                    status = MeetingStatus.VOTING,
+                ).copy(
+                    maxParticipantCount = 5,
+                    memo = "회의실 예약 완료",
+                )
+                every {
+                    meetingService.getHostMeetingDetail(
+                        meetingId = meeting.id,
+                        requesterUserId = authenticatedUser.id,
+                    )
+                } returns MeetingHostDetail(
+                    meeting = meeting,
+                    notVotedParticipantCount = 3,
+                )
+
+                val response = controller.getHostMeetingInfo(
+                    user = authenticatedUser,
+                    meetId = meeting.id.value,
+                )
+
+                response.id shouldBe meeting.id
+                response.memo shouldBe "회의실 예약 완료"
+                response.notVotedParticipantCount shouldBe 3
+            }
+        }
+
         describe("POST /api/v1/host/meeting/finalize") {
             it("모임 확정 요청 시 CONFIRMED 상태와 확정 날짜를 반환한다") {
                 val meetingId = MeetingId("test-meeting")
@@ -163,6 +195,29 @@ class MeetingVoteControllerTest : DescribeSpec({
                         maxParticipantCount = 5,
                     )
                 }
+            }
+        }
+
+        describe("PUT /api/v1/host/meeting/memo") {
+            it("주최자 메모 저장 결과를 반환한다") {
+                val request = SaveMeetingMemoRequest(
+                    meetingId = MeetingId("memo-meeting"),
+                    memo = "자동 저장 메모",
+                )
+                every {
+                    meetingService.saveMeetingMemo(
+                        meetingId = request.meetingId,
+                        requesterUserId = authenticatedUser.id,
+                        memo = request.memo,
+                    )
+                } returns true
+
+                val response = controller.saveMeetingMemo(
+                    user = authenticatedUser,
+                    request = request,
+                )
+
+                response.success shouldBe true
             }
         }
 

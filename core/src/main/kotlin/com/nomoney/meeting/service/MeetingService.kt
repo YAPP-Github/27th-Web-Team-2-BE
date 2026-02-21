@@ -19,6 +19,10 @@ import org.springframework.stereotype.Service
 class MeetingService(
     private val meetingRepository: MeetingRepository,
 ) {
+    companion object {
+        private const val MAX_MEMO_LENGTH = 200
+    }
+
     private val random = SecureRandom()
 
     fun createMeeting(
@@ -49,6 +53,26 @@ class MeetingService(
         return meetingRepository.findByMeetingId(meetingId)
     }
 
+    fun saveMeetingMemo(
+        meetingId: MeetingId,
+        requesterUserId: UserId,
+        memo: String,
+    ): Boolean {
+        if (memo.length > MAX_MEMO_LENGTH) {
+            throw InvalidRequestException(
+                "메모는 200자까지 입력 가능합니다.",
+                "meetingId=${meetingId.value}, memoLength=${memo.length}",
+            )
+        }
+
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
+
+        meetingRepository.save(meeting.copy(memo = memo))
+        return true
+    }
+
     fun getMeetingInfoSortedByParticipantUpdatedAt(meetingId: MeetingId): Meeting? {
         val meeting = meetingRepository.findByMeetingId(meetingId) ?: return null
         if (meeting.participants.isEmpty()) {
@@ -64,6 +88,23 @@ class MeetingService(
 
     fun getAllMeetings(): List<Meeting> {
         return meetingRepository.findAll()
+    }
+
+    fun getHostMeetingDetail(
+        meetingId: MeetingId,
+        requesterUserId: UserId,
+    ): MeetingHostDetail {
+        val meeting = getMeetingInfoSortedByParticipantUpdatedAt(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+        assertMeetingHostOwnership(meeting, requesterUserId)
+
+        val totalParticipantCount = meeting.maxParticipantCount ?: meeting.participants.size
+        val votedParticipantCount = meeting.participants.count { it.hasVoted }
+
+        return MeetingHostDetail(
+            meeting = meeting,
+            notVotedParticipantCount = (totalParticipantCount - votedParticipantCount).coerceAtLeast(0),
+        )
     }
 
     fun updateMeeting(

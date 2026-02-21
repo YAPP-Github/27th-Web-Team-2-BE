@@ -8,16 +8,20 @@ import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingPreviewResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingResponse
+import com.nomoney.api.meetvote.model.HostMeetingDetailResponse
 import com.nomoney.api.meetvote.model.InProgressMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
+import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
+import com.nomoney.api.meetvote.model.SaveMeetingMemoResponse
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toConfirmedResponse
 import com.nomoney.api.meetvote.model.toFinalizePreviewResponse
+import com.nomoney.api.meetvote.model.toHostDetailResponse
 import com.nomoney.api.meetvote.model.toInProgressResponse
 import com.nomoney.api.meetvote.model.toResponse
 import com.nomoney.api.meetvote.model.toSummaryResponse
@@ -55,6 +59,24 @@ class MeetingVoteController(
     ): MeetingInfoResponse {
         val meeting = meetingService.getMeetingInfoSortedByParticipantUpdatedAt(MeetingId(meetId))
         return meeting?.toResponse() ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: $meetId")
+    }
+
+    @Operation(
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.GET_HOST_MEETING_DETAIL_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_HOST_MEETING_DETAIL_DESCRIPTION,
+    )
+    @GetMapping("/api/v1/host/meeting")
+    fun getHostMeetingInfo(
+        user: User,
+        @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
+        @RequestParam
+        meetId: String,
+    ): HostMeetingDetailResponse {
+        return meetingService.getHostMeetingDetail(
+            meetingId = MeetingId(meetId),
+            requesterUserId = user.id,
+        ).toHostDetailResponse()
     }
 
     @Operation(
@@ -134,6 +156,24 @@ class MeetingVoteController(
         )
 
         return CreateMeetingResponse(id = meeting.id)
+    }
+
+    @Operation(
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.SAVE_MEETING_MEMO_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.SAVE_MEETING_MEMO_DESCRIPTION,
+    )
+    @PutMapping("/api/v1/host/meeting/memo")
+    fun saveMeetingMemo(
+        user: User,
+        @RequestBody request: SaveMeetingMemoRequest,
+    ): SaveMeetingMemoResponse {
+        val success = meetingService.saveMeetingMemo(
+            meetingId = request.meetingId,
+            requesterUserId = user.id,
+            memo = request.memo,
+        )
+        return SaveMeetingMemoResponse(success = success)
     }
 
     @Operation(
