@@ -1,4 +1,4 @@
-package com.nomoney.api.security
+package com.nomoney.api.auth
 
 import com.nomoney.support.logging.ApiLoggingFilter
 import org.springframework.boot.web.servlet.FilterRegistrationBean
@@ -8,6 +8,7 @@ import org.springframework.core.Ordered
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -17,10 +18,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 class SecurityConfig {
 
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun securityFilterChain(
+        http: HttpSecurity,
+        tokenAuthenticationFilter: TokenAuthenticationFilter,
+    ): SecurityFilterChain {
         return http
             .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
+            .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .authorizeHttpRequests { it.anyRequest().permitAll() }
             .build()
     }
