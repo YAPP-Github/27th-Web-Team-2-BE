@@ -1,6 +1,7 @@
 package com.nomoney.api.meetvote
 
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
+import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.auth.domain.User
@@ -55,6 +56,30 @@ class MeetingVoteControllerTest : DescribeSpec({
 
                 response.status shouldBe MeetingStatus.CONFIRMED
                 response.finalizedDate shouldBe finalizedDate
+            }
+        }
+
+        describe("POST /api/v1/host/meeting/finalize/check") {
+            it("충돌이 없으면 false를 반환하고 자동 확정을 진행한다") {
+                val meetingId = MeetingId("test-meeting")
+                val finalizedDate = LocalDate.of(2026, 2, 20)
+                every {
+                    meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
+                        meetingId = meetingId,
+                        finalizedDate = finalizedDate,
+                        requesterUserId = authenticatedUser.id,
+                    )
+                } returns false
+
+                val response = controller.checkFinalizedDateConflictAndFinalize(
+                    authenticatedUser,
+                    FinalizeMeetingConflictCheckRequest(
+                        meetingId = meetingId,
+                        finalizedDate = finalizedDate,
+                    ),
+                )
+
+                response.isConflict shouldBe false
             }
         }
 

@@ -69,6 +69,7 @@ class MeetingServiceTest : DescribeSpec({
                     ),
                 )
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                every { meetingRepository.findAll() } returns emptyList()
                 every { meetingRepository.save(any()) } answers { firstArg() }
 
                 val result = meetingService.finalizeMeeting(meeting.id, null, UserId(1L))
@@ -129,6 +130,7 @@ class MeetingServiceTest : DescribeSpec({
                     ),
                 )
                 every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                every { meetingRepository.findAll() } returns emptyList()
                 every { meetingRepository.save(any()) } answers { firstArg() }
 
                 val result = meetingService.finalizeMeeting(meeting.id, selectedDate, UserId(1L))
@@ -173,7 +175,78 @@ class MeetingServiceTest : DescribeSpec({
                 result.finalizedDate shouldBe finalizedDate
                 verify(exactly = 0) { meetingRepository.save(any()) }
             }
+
+            it("다른 확정 모임과 날짜가 겹쳐도 기존 확정 로직으로는 확정할 수 있다") {
+                val finalizedDate = LocalDate.of(2026, 2, 20)
+                val meeting = fixtureMeeting(
+                    id = MeetingId("meeting-to-finalize"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(finalizedDate),
+                )
+                every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                every { meetingRepository.save(any()) } answers { firstArg() }
+
+                val result = meetingService.finalizeMeeting(meeting.id, finalizedDate, UserId(1L))
+
+                result.status shouldBe MeetingStatus.CONFIRMED
+                result.finalizedDate shouldBe finalizedDate
+                verify(exactly = 1) { meetingRepository.save(any()) }
+            }
         }
+
+        describe("checkFinalizedDateConflictAndFinalizeMeeting") {
+            it("겹치는 날짜가 존재하면 true를 반환하고 확정하지 않는다") {
+                val finalizedDate = LocalDate.of(2026, 2, 20)
+                val meetingToFinalize = fixtureMeeting(
+                    id = MeetingId("meeting-to-finalize"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(finalizedDate),
+                )
+                val otherConfirmedMeeting = fixtureMeeting(
+                    id = MeetingId("confirmed-meeting"),
+                    status = MeetingStatus.CONFIRMED,
+                    finalizedDate = finalizedDate,
+                )
+                every { meetingRepository.findAll() } returns listOf(meetingToFinalize, otherConfirmedMeeting)
+
+                val result = meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
+                    meetingId = meetingToFinalize.id,
+                    finalizedDate = finalizedDate,
+                    requesterUserId = UserId(1L),
+                )
+
+                result shouldBe true
+                verify(exactly = 0) { meetingRepository.findByMeetingId(any()) }
+                verify(exactly = 0) { meetingRepository.save(any()) }
+            }
+
+            it("겹치는 날짜가 없으면 false를 반환하고 자동 확정한다") {
+                val finalizedDate = LocalDate.of(2026, 2, 20)
+                val meetingToFinalize = fixtureMeeting(
+                    id = MeetingId("meeting-to-finalize"),
+                    status = MeetingStatus.VOTING,
+                    dates = setOf(finalizedDate),
+                )
+                val otherConfirmedMeeting = fixtureMeeting(
+                    id = MeetingId("confirmed-meeting"),
+                    status = MeetingStatus.CONFIRMED,
+                    finalizedDate = LocalDate.of(2026, 2, 21),
+                )
+                every { meetingRepository.findAll() } returns listOf(meetingToFinalize, otherConfirmedMeeting)
+                every { meetingRepository.findByMeetingId(meetingToFinalize.id) } returns meetingToFinalize
+                every { meetingRepository.save(any()) } answers { firstArg() }
+
+                val result = meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
+                    meetingId = meetingToFinalize.id,
+                    finalizedDate = finalizedDate,
+                    requesterUserId = UserId(1L),
+                )
+
+                result shouldBe false
+                verify(exactly = 1) { meetingRepository.save(any()) }
+            }
+        }
+
         describe("getFinalizePreview") {
             it("최다 득표 날짜 후보와 투표자 정보를 반환한다") {
                 val meeting = fixtureMeeting(

@@ -292,13 +292,35 @@ class MeetingService(
         }
 
         val resolvedFinalizedDate = resolveFinalizedDate(meeting, selectedDate)
-
         return meetingRepository.save(
             meeting.copy(
                 status = MeetingStatus.CONFIRMED,
                 finalizedDate = resolvedFinalizedDate,
             ),
         )
+    }
+
+    fun checkFinalizedDateConflictAndFinalizeMeeting(
+        meetingId: MeetingId,
+        finalizedDate: LocalDate,
+        requesterUserId: UserId,
+    ): Boolean {
+        if (
+            hasDateConflictWithConfirmedMeetings(
+                requesterUserId = requesterUserId,
+                meetingId = meetingId,
+                finalizedDate = finalizedDate,
+            )
+        ) {
+            return true
+        }
+
+        finalizeMeeting(
+            meetingId = meetingId,
+            selectedDate = finalizedDate,
+            requesterUserId = requesterUserId,
+        )
+        return false
     }
 
     fun getFinalizePreview(
@@ -474,6 +496,19 @@ class MeetingService(
         return topDateVoteDetails(meeting)
             .map { it.date }
             .toSet()
+    }
+
+    private fun hasDateConflictWithConfirmedMeetings(
+        requesterUserId: UserId,
+        meetingId: MeetingId,
+        finalizedDate: LocalDate,
+    ): Boolean {
+        return meetingRepository.findAll().any { savedMeeting ->
+            savedMeeting.hostUserId == requesterUserId &&
+                savedMeeting.status == MeetingStatus.CONFIRMED &&
+                savedMeeting.id != meetingId &&
+                savedMeeting.finalizedDate == finalizedDate
+        }
     }
 
     private fun topDateVoteDetails(meeting: Meeting): List<MeetingDateVoteDetail> {
