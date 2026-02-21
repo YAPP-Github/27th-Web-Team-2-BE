@@ -3,6 +3,8 @@ package com.nomoney.api.meetvote
 import com.nomoney.api.meetvote.model.ConfirmedMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
+import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckRequest
+import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingPreviewResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingResponse
@@ -228,5 +230,23 @@ class MeetingVoteController(
                 "CONFIRMED 상태의 모임에는 finalizedDate가 반드시 존재해야 합니다. meetingId=${meeting.id.value}"
             },
         )
+    }
+
+    @Operation(
+        tags = ["주최자 모임 관리 API"],
+        summary = "모임 확정 날짜 충돌 확인 및 자동 확정",
+        description = "확정 날짜가 주최자의 다른 확정 모임과 겹치는지 확인합니다. 겹치지 않으면 모임을 즉시 확정하고 false를 반환합니다.",
+    )
+    @PostMapping("/api/v1/host/meeting/finalize/check")
+    fun checkFinalizedDateConflictAndFinalize(
+        user: User,
+        @RequestBody request: FinalizeMeetingConflictCheckRequest,
+    ): FinalizeMeetingConflictCheckResponse {
+        val isConflict = meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
+            meetingId = request.meetingId,
+            finalizedDate = request.finalizedDate,
+            requesterUserId = user.id,
+        )
+        return FinalizeMeetingConflictCheckResponse(isConflict = isConflict)
     }
 }
