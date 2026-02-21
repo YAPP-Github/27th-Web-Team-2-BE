@@ -1,5 +1,6 @@
 package com.nomoney.oauth.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.oauth.config.KakaoOAuthProperties
 import com.nomoney.oauth.dto.KakaoTokenResponse
@@ -22,7 +23,8 @@ class KakaoOAuthClientTest : DescribeSpec({
         clientSecret = "test-client-secret",
         redirectUri = "https://example.com/api/v1/auth/oauth/kakao",
     )
-    val kakaoOAuthClient = KakaoOAuthClient(restTemplate, properties)
+    val objectMapper = ObjectMapper()
+    val kakaoOAuthClient = KakaoOAuthClient(restTemplate, properties, objectMapper)
 
     describe("KakaoOAuthClient") {
 
