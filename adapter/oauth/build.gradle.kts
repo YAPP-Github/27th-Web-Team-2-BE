@@ -9,6 +9,7 @@ plugins {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":port"))
+    implementation(project(":support:logging"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
