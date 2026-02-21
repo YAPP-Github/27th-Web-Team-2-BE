@@ -1,11 +1,13 @@
 package com.nomoney.oauth.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.auth.domain.SocialUserInfo
 import com.nomoney.auth.port.SocialOAuthClient
 import com.nomoney.oauth.config.KakaoOAuthProperties
 import com.nomoney.oauth.dto.KakaoTokenResponse
 import com.nomoney.oauth.dto.KakaoUserInfoResponse
+import com.nomoney.support.logging.logger
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -18,7 +20,9 @@ import org.springframework.web.client.RestTemplate
 class KakaoOAuthClient(
     private val restTemplate: RestTemplate,
     private val properties: KakaoOAuthProperties,
+    private val objectMapper: ObjectMapper,
 ) : SocialOAuthClient {
+    private val logger = logger()
 
     override fun supports(provider: SocialProvider): Boolean =
         provider == SocialProvider.KAKAO
@@ -37,6 +41,8 @@ class KakaoOAuthClient(
             add("code", authorizationCode)
             if (state != null) add("state", state)
         }
+
+        logger.info(objectMapper.writeValueAsString(request))
 
         val response = try {
             restTemplate.postForObject(url, HttpEntity(body, headers), KakaoTokenResponse::class.java)
