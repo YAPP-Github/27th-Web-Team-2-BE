@@ -42,7 +42,7 @@ class KakaoOAuthClient(
             if (state != null) add("state", state)
         }
 
-        logger.info(objectMapper.writeValueAsString(request))
+        logger.info(objectMapper.writeValueAsString(body))
 
         val response = try {
             restTemplate.postForObject(url, HttpEntity(body, headers), KakaoTokenResponse::class.java)
