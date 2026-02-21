@@ -23,6 +23,9 @@ management:
     tags:
       application: ${spring.profiles.active:local}-nomoney-api
 
+sentry:
+  environment: ${spring.profiles.active:local}
+
 ---
 spring.config.activate.on-profile: local
 
