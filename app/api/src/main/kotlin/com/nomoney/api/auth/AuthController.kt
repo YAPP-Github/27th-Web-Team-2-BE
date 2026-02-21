@@ -35,7 +35,7 @@ class AuthController(
     @Operation(summary = "익명 로그인", description = "익명 사용자로 로그인합니다. 매 호출마다 새로운 익명 사용자가 생성됩니다.")
     @GetMapping("/api/v1/auth/anonymous")
     fun anonymousLogin(
-        @RequestParam state: String,
+        @RequestParam state: String?,
         response: HttpServletResponse,
     ) {
         val tokenPair = anonymousAuthService.loginAnonymously()
@@ -153,6 +153,7 @@ class AuthController(
             secure = true // HTTPS에서만 전송
             path = "/"
             maxAge = Duration.ofDays(30).seconds.toInt()
+            setAttribute("SameSite", "NONE")
         }
         response.addCookie(accessTokenCookie)
 
@@ -162,6 +163,7 @@ class AuthController(
             secure = true
             path = "/api/v1/auth/refresh-cookie"
             maxAge = Duration.ofDays(90).seconds.toInt()
+            setAttribute("SameSite", "NONE")
         }
         response.addCookie(refreshTokenCookie)
     }
