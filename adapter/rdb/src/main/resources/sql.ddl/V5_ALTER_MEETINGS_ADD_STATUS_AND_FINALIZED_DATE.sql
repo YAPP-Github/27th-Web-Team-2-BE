@@ -3,5 +3,3 @@ ALTER TABLE meetings
 
 ALTER TABLE meetings
     ADD COLUMN IF NOT EXISTS finalized_date DATE NULL;
-
-CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
