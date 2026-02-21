@@ -3,6 +3,7 @@ package com.nomoney.api.meetvote
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
+import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.auth.domain.User
 import com.nomoney.auth.domain.UserId
@@ -163,6 +164,29 @@ class MeetingVoteControllerTest : DescribeSpec({
                         maxParticipantCount = 5,
                     )
                 }
+            }
+        }
+
+        describe("PUT /api/v1/host/meeting/memo") {
+            it("주최자 메모 저장 결과를 반환한다") {
+                val request = SaveMeetingMemoRequest(
+                    meetingId = MeetingId("memo-meeting"),
+                    memo = "자동 저장 메모",
+                )
+                every {
+                    meetingService.saveMeetingMemo(
+                        meetingId = request.meetingId,
+                        requesterUserId = authenticatedUser.id,
+                        memo = request.memo,
+                    )
+                } returns true
+
+                val response = controller.saveMeetingMemo(
+                    user = authenticatedUser,
+                    request = request,
+                )
+
+                response.success shouldBe true
             }
         }
 

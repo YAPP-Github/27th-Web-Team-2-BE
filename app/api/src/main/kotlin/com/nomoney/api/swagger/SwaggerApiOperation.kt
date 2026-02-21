@@ -26,6 +26,8 @@ object SwaggerApiOperation {
         const val GET_FINALIZE_PREVIEW_DESCRIPTION = "모임 확정 시 필요한 최다 득표 날짜 후보(날짜/득표수/투표자)를 조회합니다."
         const val CREATE_MEETING_SUMMARY = "모임 생성"
         const val CREATE_MEETING_DESCRIPTION = "새로운 모임을 생성하고 고유 ID를 발급합니다"
+        const val SAVE_MEETING_MEMO_SUMMARY = "주최자 메모 저장"
+        const val SAVE_MEETING_MEMO_DESCRIPTION = "주최자가 모임 메모를 저장합니다. 메모는 200자까지 가능합니다."
         const val UPDATE_MEETING_SUMMARY = "모임 수정"
         const val UPDATE_MEETING_DESCRIPTION = "모임 제목, 최대 인원, 후보 날짜, 삭제할 참여자를 반영해 모임을 수정합니다."
         const val CHECK_DUPLICATE_NAME_SUMMARY = "참여자 이름 중복 확인"

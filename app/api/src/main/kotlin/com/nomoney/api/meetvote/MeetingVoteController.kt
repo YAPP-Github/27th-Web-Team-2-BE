@@ -12,6 +12,8 @@ import com.nomoney.api.meetvote.model.InProgressMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
+import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
+import com.nomoney.api.meetvote.model.SaveMeetingMemoResponse
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingResponse
 import com.nomoney.api.meetvote.model.VoteRequest
@@ -134,6 +136,24 @@ class MeetingVoteController(
         )
 
         return CreateMeetingResponse(id = meeting.id)
+    }
+
+    @Operation(
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.SAVE_MEETING_MEMO_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.SAVE_MEETING_MEMO_DESCRIPTION,
+    )
+    @PutMapping("/api/v1/host/meeting/memo")
+    fun saveMeetingMemo(
+        user: User,
+        @RequestBody request: SaveMeetingMemoRequest,
+    ): SaveMeetingMemoResponse {
+        val success = meetingService.saveMeetingMemo(
+            meetingId = request.meetingId,
+            requesterUserId = user.id,
+            memo = request.memo,
+        )
+        return SaveMeetingMemoResponse(success = success)
     }
 
     @Operation(
