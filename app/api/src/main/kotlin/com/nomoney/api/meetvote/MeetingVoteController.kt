@@ -22,6 +22,8 @@ import com.nomoney.api.meetvote.model.toInProgressResponse
 import com.nomoney.api.meetvote.model.toResponse
 import com.nomoney.api.meetvote.model.toSummaryResponse
 import com.nomoney.api.meetvote.model.toUpdateResponse
+import com.nomoney.api.swagger.SwaggerApiOperation
+import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.auth.domain.User
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
@@ -41,9 +43,9 @@ class MeetingVoteController(
 ) {
 
     @Operation(
-        tags = ["모임 조회/생성 API"],
-        summary = "모임 정보 조회",
-        description = "모임 ID로 모임 정보와 참여자들의 투표 현황을 조회합니다",
+        tags = [SwaggerApiTag.MEETING_QUERY_CREATE],
+        summary = SwaggerApiOperation.MeetingVote.GET_MEETING_INFO_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_MEETING_INFO_DESCRIPTION,
     )
     @GetMapping("/api/v1/meeting")
     fun getMeetingInfo(
@@ -56,9 +58,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["모임 조회/생성 API"],
-        summary = "모임 목록 조회",
-        description = "모든 모임의 ID, 제목, 주최자를 조회합니다",
+        tags = [SwaggerApiTag.MEETING_QUERY_CREATE],
+        summary = SwaggerApiOperation.MeetingVote.GET_MEETING_LIST_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_MEETING_LIST_DESCRIPTION,
     )
     @GetMapping("/api/v1/meeting/list")
     fun getMeetingList(): List<MeetingSummaryResponse> {
@@ -67,9 +69,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["주최자 모임 관리 API"],
-        summary = "주최자 진행중 모임 대시보드 조회",
-        description = "주최자 기준 진행중(VOTING) 모임 목록과 요약 정보를 조회합니다.",
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.GET_IN_PROGRESS_DASHBOARD_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_IN_PROGRESS_DASHBOARD_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/dashboard/in-progress")
     fun getInProgressMeetingDashboard(
@@ -79,9 +81,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["주최자 모임 관리 API"],
-        summary = "주최자 확정 모임 대시보드 조회",
-        description = "주최자 기준 확정(CONFIRMED) 모임 목록과 요약 정보를 조회합니다.",
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.GET_CONFIRMED_DASHBOARD_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_CONFIRMED_DASHBOARD_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/dashboard/confirmed")
     fun getConfirmedMeetingDashboard(
@@ -91,9 +93,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["주최자 모임 관리 API"],
-        summary = "모임 확정 후보 조회",
-        description = "모임 확정 시 필요한 최다 득표 날짜 후보(날짜/득표수/투표자)를 조회합니다.",
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.GET_FINALIZE_PREVIEW_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_FINALIZE_PREVIEW_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/finalize/preview")
     fun getFinalizeMeetingPreview(
@@ -106,9 +108,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["모임 조회/생성 API"],
-        summary = "모임 생성",
-        description = "새로운 모임을 생성하고 고유 ID를 발급합니다",
+        tags = [SwaggerApiTag.MEETING_QUERY_CREATE],
+        summary = SwaggerApiOperation.MeetingVote.CREATE_MEETING_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.CREATE_MEETING_DESCRIPTION,
     )
     @PostMapping("/api/v1/meeting")
     fun createMeeting(
@@ -135,9 +137,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["주최자 모임 관리 API"],
-        summary = "모임 수정",
-        description = "모임 제목, 최대 인원, 후보 날짜, 삭제할 참여자를 반영해 모임을 수정합니다.",
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.UPDATE_MEETING_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.UPDATE_MEETING_DESCRIPTION,
     )
     @PutMapping("/api/v1/host/meeting")
     fun updateMeeting(
@@ -156,9 +158,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["모임 조회/생성 API"],
-        summary = "참여자 이름 중복 확인",
-        description = "모임에 동일한 이름의 참여자가 있는지 확인합니다",
+        tags = [SwaggerApiTag.MEETING_QUERY_CREATE],
+        summary = SwaggerApiOperation.MeetingVote.CHECK_DUPLICATE_NAME_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.CHECK_DUPLICATE_NAME_DESCRIPTION,
     )
     @GetMapping("/api/v1/meeting/participant/exist")
     fun checkDuplicateName(
@@ -174,9 +176,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["투표 API"],
-        summary = "투표 생성",
-        description = "모임에 대한 투표를 생성합니다. 중복된 이름으로 투표할 경우 에러가 발생합니다.",
+        tags = [SwaggerApiTag.VOTE],
+        summary = SwaggerApiOperation.MeetingVote.CREATE_VOTE_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.CREATE_VOTE_DESCRIPTION,
     )
     @PostMapping("/api/v1/meeting/vote")
     fun createVote(
@@ -192,9 +194,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["투표 API"],
-        summary = "투표 수정",
-        description = "기존 투표 내용을 수정합니다.",
+        tags = [SwaggerApiTag.VOTE],
+        summary = SwaggerApiOperation.MeetingVote.UPDATE_VOTE_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.UPDATE_VOTE_DESCRIPTION,
     )
     @PutMapping("/api/v1/meeting/vote")
     fun updateVote(
@@ -210,9 +212,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["주최자 모임 관리 API"],
-        summary = "모임 확정",
-        description = "투표 결과를 바탕으로 최종 날짜를 확정하고 모임 상태를 확정으로 전환합니다. 공동 1위인 경우 finalizedDate를 함께 요청해야 합니다.",
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.FINALIZE_MEETING_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.FINALIZE_MEETING_DESCRIPTION,
     )
     @PostMapping("/api/v1/host/meeting/finalize")
     fun finalizeMeeting(
@@ -233,9 +235,9 @@ class MeetingVoteController(
     }
 
     @Operation(
-        tags = ["주최자 모임 관리 API"],
-        summary = "모임 확정 날짜 충돌 확인 및 자동 확정",
-        description = "확정 날짜가 주최자의 다른 확정 모임과 겹치는지 확인합니다. 겹치지 않으면 모임을 즉시 확정하고 false를 반환합니다.",
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.CHECK_FINALIZED_DATE_CONFLICT_AND_FINALIZE_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.CHECK_FINALIZED_DATE_CONFLICT_AND_FINALIZE_DESCRIPTION,
     )
     @PostMapping("/api/v1/host/meeting/finalize/check")
     fun checkFinalizedDateConflictAndFinalize(

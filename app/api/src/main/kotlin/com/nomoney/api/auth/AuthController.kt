@@ -6,6 +6,8 @@ import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
 import com.nomoney.api.config.OAuthRedirectProperties
+import com.nomoney.api.swagger.SwaggerApiOperation
+import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.service.AuthService
@@ -23,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
-@Tag(name = "인증", description = "인증 관련 API")
+@Tag(name = SwaggerApiTag.AUTH, description = SwaggerApiTag.AUTH_DESCRIPTION)
 @RestController
 class AuthController(
     private val authService: AuthService,
@@ -31,7 +33,10 @@ class AuthController(
     private val oauthRedirectProperties: OAuthRedirectProperties,
 ) {
 
-    @Operation(summary = "토큰 발급", description = "사용자의 액세스 토큰과 리프레시 토큰을 발급합니다 (임시 API)")
+    @Operation(
+        summary = SwaggerApiOperation.Auth.ISSUE_TOKEN_SUMMARY,
+        description = SwaggerApiOperation.Auth.ISSUE_TOKEN_DESCRIPTION,
+    )
     @PostMapping("/api/v1/auth/token")
     fun issueToken(
         @RequestBody request: IssueTokenRequest,
@@ -48,7 +53,10 @@ class AuthController(
         )
     }
 
-    @Operation(summary = "토큰 갱신", description = "리프레시 토큰을 사용하여 새로운 액세스 토큰과 리프레시 토큰을 발급합니다")
+    @Operation(
+        summary = SwaggerApiOperation.Auth.REFRESH_TOKEN_SUMMARY,
+        description = SwaggerApiOperation.Auth.REFRESH_TOKEN_DESCRIPTION,
+    )
     @PostMapping("/api/v1/auth/refresh")
     fun refreshToken(
         @RequestBody request: RefreshTokenRequest,
@@ -65,7 +73,10 @@ class AuthController(
         )
     }
 
-    @Operation(summary = "구글 소셜 로그인", description = "구글 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정하고 프론트엔드 URL로 리다이렉트합니다.")
+    @Operation(
+        summary = SwaggerApiOperation.Auth.GOOGLE_SOCIAL_LOGIN_SUMMARY,
+        description = SwaggerApiOperation.Auth.GOOGLE_SOCIAL_LOGIN_DESCRIPTION,
+    )
     @GetMapping("/api/v1/auth/oauth/google")
     fun googleLogin(
         @RequestParam code: String,
@@ -85,7 +96,10 @@ class AuthController(
         }
     }
 
-    @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")
+    @Operation(
+        summary = SwaggerApiOperation.Auth.REFRESH_TOKEN_WITH_COOKIE_SUMMARY,
+        description = SwaggerApiOperation.Auth.REFRESH_TOKEN_WITH_COOKIE_DESCRIPTION,
+    )
     @PostMapping("/api/v1/auth/refresh-cookie")
     fun refreshTokenWithCookie(
         request: HttpServletRequest,
