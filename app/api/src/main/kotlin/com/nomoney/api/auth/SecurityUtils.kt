@@ -5,11 +5,11 @@ import com.nomoney.auth.domain.UserId
 import com.nomoney.exception.UnauthorizedException
 import org.springframework.security.core.context.SecurityContextHolder
 
-fun getSecurityMemberId(): UserId? {
+fun getSecurityUserId(): UserId? {
     val authentication = SecurityContextHolder.getContext()?.authentication as? TokenAuthentication
     return authentication?.principal
 }
 
-fun getSecurityMemberIdOrThrow(): UserId {
-    return getSecurityMemberId() ?: throw UnauthorizedException()
+fun getSecurityUserIdOrThrow(): UserId {
+    return getSecurityUserId() ?: throw UnauthorizedException()
 }
