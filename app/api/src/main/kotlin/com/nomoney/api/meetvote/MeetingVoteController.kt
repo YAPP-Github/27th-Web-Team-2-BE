@@ -32,11 +32,11 @@ import com.nomoney.auth.domain.User
 import com.nomoney.auth.service.AuthService
 import com.nomoney.exception.NotFoundException
 import com.nomoney.exception.UnauthorizedException
-import jakarta.servlet.http.HttpServletRequest
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
