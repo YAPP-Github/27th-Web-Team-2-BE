@@ -1,10 +1,8 @@
 package com.nomoney.api.user
 
-import com.nomoney.api.auth.getSecurityUserId
 import com.nomoney.api.auth.getSecurityUserIdOrThrow
 import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.api.user.model.UserInfoResponse
-import com.nomoney.auth.domain.User
 import com.nomoney.auth.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
