@@ -3,4 +3,5 @@ package com.nomoney.api.swagger
 object SwaggerApiTag {
     const val TEST = "[TEST] 00. Test Api / 운영에서는 제공하지 않음"
     const val MEET_VOTE = "[API] 01. 일정 투표 관련"
+    const val USER = "[API] 02. 사용자 관련"
 }
