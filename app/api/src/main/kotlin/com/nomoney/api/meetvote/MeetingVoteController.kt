@@ -29,7 +29,10 @@ import com.nomoney.api.meetvote.model.toUpdateResponse
 import com.nomoney.api.swagger.SwaggerApiOperation
 import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.auth.domain.User
+import com.nomoney.auth.service.AuthService
 import com.nomoney.exception.NotFoundException
+import com.nomoney.exception.UnauthorizedException
+import jakarta.servlet.http.HttpServletRequest
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
 import io.swagger.v3.oas.annotations.Operation
@@ -44,6 +47,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class MeetingVoteController(
     private val meetingService: MeetingService,
+    private val authService: AuthService,
 ) {
 
     @Operation(
@@ -136,13 +140,14 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/meeting")
     fun createMeeting(
-        user: User,
+        httpRequest: HttpServletRequest,
         @RequestBody request: CreateMeetingRequest,
     ): CreateMeetingResponse {
+        val hostUserId = resolveOptionalUserId(httpRequest)
         val meeting = meetingService.createMeeting(
             title = request.title,
             hostName = request.hostName,
-            hostUserId = user.id,
+            hostUserId = hostUserId,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
         )
@@ -290,5 +295,38 @@ class MeetingVoteController(
             requesterUserId = user.id,
         )
         return FinalizeMeetingConflictCheckResponse(isConflict = isConflict)
+    }
+
+    private fun resolveOptionalUserId(httpRequest: HttpServletRequest) =
+        extractAccessToken(httpRequest)?.let { authService.validateToken(it).id }
+
+    private fun extractAccessToken(httpRequest: HttpServletRequest): String? {
+        val authHeader = httpRequest.getHeader(AUTHORIZATION_HEADER)
+        if (authHeader != null) {
+            return extractTokenFromHeader(authHeader)
+        }
+
+        val accessTokenCookie = httpRequest.cookies?.firstOrNull { it.name == ACCESS_TOKEN_COOKIE_NAME } ?: return null
+        if (accessTokenCookie.value.isBlank()) {
+            throw UnauthorizedException("액세스 토큰이 비어있습니다.")
+        }
+        return accessTokenCookie.value
+    }
+
+    private fun extractTokenFromHeader(authHeader: String): String {
+        if (!authHeader.startsWith(BEARER_PREFIX)) {
+            throw UnauthorizedException("Bearer 토큰 형식이 필요합니다.")
+        }
+        val token = authHeader.substring(BEARER_PREFIX.length)
+        if (token.isBlank()) {
+            throw UnauthorizedException("토큰이 비어있습니다.")
+        }
+        return token
+    }
+
+    companion object {
+        private const val AUTHORIZATION_HEADER = "Authorization"
+        private const val BEARER_PREFIX = "Bearer "
+        private const val ACCESS_TOKEN_COOKIE_NAME = "access_token"
     }
 }

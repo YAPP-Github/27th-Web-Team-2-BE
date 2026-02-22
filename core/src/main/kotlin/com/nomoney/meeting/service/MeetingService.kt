@@ -28,7 +28,7 @@ class MeetingService(
     fun createMeeting(
         title: String,
         hostName: String?,
-        hostUserId: UserId,
+        hostUserId: UserId?,
         dates: Set<LocalDate>,
         maxParticipantCount: Int? = null,
     ): Meeting {

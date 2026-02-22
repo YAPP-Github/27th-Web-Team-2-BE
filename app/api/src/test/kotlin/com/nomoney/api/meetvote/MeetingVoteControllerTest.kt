@@ -7,6 +7,7 @@ import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.auth.domain.User
 import com.nomoney.auth.domain.UserId
+import com.nomoney.auth.service.AuthService
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
@@ -23,16 +24,18 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import jakarta.servlet.http.HttpServletRequest
 import java.time.LocalDate
 
 class MeetingVoteControllerTest : DescribeSpec({
 
     val meetingService = mockk<MeetingService>()
-    val controller = MeetingVoteController(meetingService)
+    val authService = mockk<AuthService>()
+    val controller = MeetingVoteController(meetingService, authService)
     val authenticatedUser = User(UserId(1L))
 
     beforeTest {
-        clearMocks(meetingService)
+        clearMocks(meetingService, authService)
     }
 
     describe("MeetingVoteController") {
@@ -151,14 +154,17 @@ class MeetingVoteControllerTest : DescribeSpec({
         }
 
         describe("POST /api/v1/meeting") {
-            it("모임 생성 시 maxParticipantCount를 서비스로 전달한다") {
+            it("토큰이 있으면 userId를 포함해 모임을 생성한다") {
                 val meetingId = MeetingId("created-meeting")
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val request = CreateMeetingRequest(
                     title = "신규 모임",
                     hostName = "주최자",
                     maxParticipantCount = 5,
                     dates = listOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
                 )
+                every { httpServletRequest.getHeader("Authorization") } returns "Bearer access-token"
+                every { authService.validateToken("access-token") } returns authenticatedUser
                 every {
                     meetingService.createMeeting(
                         title = request.title,
@@ -183,9 +189,10 @@ class MeetingVoteControllerTest : DescribeSpec({
                     status = MeetingStatus.VOTING,
                 )
 
-                val response = controller.createMeeting(authenticatedUser, request)
+                val response = controller.createMeeting(httpServletRequest, request)
 
                 response.id shouldBe meetingId
+                verify(exactly = 1) { authService.validateToken("access-token") }
                 verify(exactly = 1) {
                     meetingService.createMeeting(
                         title = request.title,
@@ -193,6 +200,56 @@ class MeetingVoteControllerTest : DescribeSpec({
                         hostUserId = authenticatedUser.id,
                         dates = request.dates.toSet(),
                         maxParticipantCount = 5,
+                    )
+                }
+            }
+
+            it("토큰이 없으면 hostUserId 없이 모임을 생성한다") {
+                val meetingId = MeetingId("created-meeting-anonymous")
+                val httpServletRequest = mockk<HttpServletRequest>()
+                val request = CreateMeetingRequest(
+                    title = "비로그인 모임",
+                    hostName = "익명 주최자",
+                    maxParticipantCount = 3,
+                    dates = listOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                )
+                every { httpServletRequest.getHeader("Authorization") } returns null
+                every { httpServletRequest.cookies } returns null
+                every {
+                    meetingService.createMeeting(
+                        title = request.title,
+                        hostName = request.hostName,
+                        hostUserId = null,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = request.maxParticipantCount,
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                ).copy(hostUserId = null)
+                every {
+                    meetingService.addParticipant(
+                        meetingId = meetingId,
+                        name = request.hostName,
+                        voteDates = emptySet(),
+                        hasVoted = false,
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                ).copy(hostUserId = null)
+
+                val response = controller.createMeeting(httpServletRequest, request)
+
+                response.id shouldBe meetingId
+                verify(exactly = 0) { authService.validateToken(any()) }
+                verify(exactly = 1) {
+                    meetingService.createMeeting(
+                        title = request.title,
+                        hostName = request.hostName,
+                        hostUserId = null,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = 3,
                     )
                 }
             }
