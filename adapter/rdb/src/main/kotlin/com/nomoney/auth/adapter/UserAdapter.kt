@@ -2,6 +2,7 @@ package com.nomoney.auth.adapter
 
 import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.auth.domain.SocialUserInfo
+import com.nomoney.auth.domain.User
 import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.entity.UserJpaEntity
 import com.nomoney.auth.port.UserRepository
@@ -30,5 +31,12 @@ class UserAdapter(
     override fun findUserIdBySocialProviderAndSocialId(provider: SocialProvider, socialId: String): UserId? {
         return userJpaRepository.findBySocialProviderAndSocialId(provider.name, socialId)
             ?.let { UserId(it.userId) }
+    }
+
+    @Transactional(readOnly = true)
+    override fun findById(userId: UserId): User? {
+        return userJpaRepository.findById(userId.value)
+            .orElse(null)
+            ?.let { User(id = UserId(it.userId), name = it.name) }
     }
 }
