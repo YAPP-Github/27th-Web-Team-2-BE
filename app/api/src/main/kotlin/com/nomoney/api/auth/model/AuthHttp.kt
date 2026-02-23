@@ -44,3 +44,27 @@ data class RefreshTokenResponse(
     @Schema(description = "리프레시 토큰 만료 시간")
     val refreshTokenExpiresAt: LocalDateTime,
 )
+
+@Schema(description = "구글 OAuth 로그인 요청")
+data class GoogleOAuthLoginRequest(
+    @Schema(description = "구글 인증 코드", example = "4/0AY0e-g7...", required = true)
+    val code: String,
+)
+
+@Schema(description = "구글 OAuth 로그인 응답")
+data class GoogleOAuthLoginResponse(
+    @Schema(description = "로그인 성공 여부")
+    val success: Boolean = true,
+
+    @Schema(description = "메시지")
+    val message: String = "로그인에 성공했습니다.",
+)
+
+@Schema(description = "쿠키 기반 토큰 갱신 응답")
+data class RefreshTokenCookieResponse(
+    @Schema(description = "토큰 갱신 성공 여부")
+    val success: Boolean = true,
+
+    @Schema(description = "메시지")
+    val message: String = "토큰이 갱신되었습니다.",
+)

@@ -71,9 +71,7 @@ class AuthService(
             throw UnauthorizedException("토큰이 만료되었습니다. expiresAt: ${authToken.expiresAt}")
         }
 
-        return User(
-            id = authToken.userId,
-        )
+        return User(id = authToken.userId)
     }
 
     private fun createRefreshToken(userId: UserId): RefreshToken {

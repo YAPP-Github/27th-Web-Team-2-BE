@@ -10,7 +10,6 @@ import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
 import java.security.SecureRandom
 import java.time.LocalDate
-import java.time.LocalDateTime
 import org.springframework.stereotype.Service
 
 @Service
@@ -48,7 +47,7 @@ class MeetingService(
         }
 
         val sortedParticipants = meeting.participants.sortedWith(
-            compareByDescending<Participant> { it.updatedAt ?: LocalDateTime.MIN },
+            compareByDescending<Participant> { it.updatedAt },
         )
 
         return meeting.copy(participants = sortedParticipants)
