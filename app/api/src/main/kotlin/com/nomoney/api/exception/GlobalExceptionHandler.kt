@@ -22,7 +22,7 @@ class GlobalExceptionHandler {
     fun handleClientException(ex: AuthException): ResponseEntity<ErrorResponse> {
         val errorResponse = ErrorResponse(
             code = ex.code,
-            message = ex.message ?: "클라이언트 오류가 발생했습니다.",
+            message = ex.message ?: "인증을 실패했습니다.",
             messageForDev = ex.messageForDev,
         )
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse)
