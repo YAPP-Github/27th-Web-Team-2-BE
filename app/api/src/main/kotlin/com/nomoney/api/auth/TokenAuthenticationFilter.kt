@@ -2,6 +2,7 @@ package com.nomoney.api.auth
 
 import com.nomoney.api.auth.model.TokenAuthentication
 import com.nomoney.auth.service.AuthService
+import com.nomoney.exception.NoMoneyException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -29,7 +30,7 @@ class TokenAuthenticationFilter(
 
             val accessToken = headerData[1]
 
-            val user = authService.validateToken(accessToken) ?: return
+            val user = authService.validateToken(accessToken)
 
             MDC.put("userId", user.id.value.toString())
 
@@ -41,6 +42,8 @@ class TokenAuthenticationFilter(
                 user.id,
                 emptyList(), // authorities.map { SimpleGrantedAuthority(it.name) },
             )
+        } catch (e: NoMoneyException) {
+            request.setAttribute(TOKEN_VALIDATION_ERROR_ATTR, e)
         } finally {
             filterChain.doFilter(request, response)
         }
