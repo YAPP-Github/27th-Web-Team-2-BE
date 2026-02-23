@@ -182,6 +182,7 @@ class MeetingService(
                 finalizedDate = meeting.finalizedDate,
                 completedVoteCount = completedVoteCount,
                 totalVoteCount = totalVoteCount,
+                memo = meeting.memo,
             ) to referenceDate
         }
 

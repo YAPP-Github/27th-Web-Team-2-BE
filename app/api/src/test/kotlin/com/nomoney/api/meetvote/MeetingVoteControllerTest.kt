@@ -296,6 +296,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                             finalizedDate = null,
                             completedVoteCount = 2,
                             totalVoteCount = 4,
+                            memo = "회의실 예약 완료 예정",
                         ),
                     ),
                     confirmedMeetings = emptyList(),
@@ -307,6 +308,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                 response.summary.votingCount shouldBe 1
                 response.meetings.size shouldBe 1
                 response.meetings.first().meetingId shouldBe MeetingId("meeting-a")
+                response.meetings.first().memo shouldBe "회의실 예약 완료 예정"
             }
         }
 
@@ -330,6 +332,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                             finalizedDate = finalizedDate,
                             completedVoteCount = 3,
                             totalVoteCount = 3,
+                            memo = "회의실 예약 완료",
                         ),
                     ),
                 )
@@ -341,6 +344,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                 response.meetings.size shouldBe 1
                 response.meetings.first().meetingId shouldBe MeetingId("meeting-confirmed")
                 response.meetings.first().finalizedDate shouldBe finalizedDate
+                response.meetings.first().memo shouldBe "회의실 예약 완료"
             }
         }
 
