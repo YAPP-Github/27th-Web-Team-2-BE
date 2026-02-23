@@ -21,14 +21,7 @@ class TokenAuthenticationFilter(
         filterChain: FilterChain,
     ) {
         try {
-            val authHeader = request.getHeader(HEADER_AUTHORIZATION) ?: return
-            val headerData = authHeader.split(' ')
-
-            if (headerData.size != 2) return
-            if (headerData[0].lowercase() != AUTHORIZATION_METHOD) return
-            if (headerData[1].isBlank()) return
-
-            val accessToken = headerData[1]
+            val accessToken = resolveToken(request) ?: return
 
             val user = authService.validateToken(accessToken)
 
@@ -49,8 +42,24 @@ class TokenAuthenticationFilter(
         }
     }
 
+    private fun resolveToken(request: HttpServletRequest): String? {
+        val authHeader = request.getHeader(HEADER_AUTHORIZATION)
+        if (authHeader != null) {
+            val headerData = authHeader.split(' ')
+            if (headerData.size == 2 && headerData[0].lowercase() == AUTHORIZATION_METHOD && headerData[1].isNotBlank()) {
+                return headerData[1]
+            }
+        }
+
+        return request.cookies
+            ?.firstOrNull { it.name == COOKIE_ACCESS_TOKEN }
+            ?.value
+            ?.takeIf { it.isNotBlank() }
+    }
+
     companion object {
         private const val HEADER_AUTHORIZATION = "Authorization"
         private const val AUTHORIZATION_METHOD = "bearer"
+        private const val COOKIE_ACCESS_TOKEN = "access_token"
     }
 }
