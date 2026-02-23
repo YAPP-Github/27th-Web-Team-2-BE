@@ -19,7 +19,7 @@ import org.springframework.web.servlet.NoHandlerFoundException
 class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthException::class)
-    fun handleClientException(ex: AuthException): ResponseEntity<ErrorResponse> {
+    fun handleAuthException(ex: AuthException): ResponseEntity<ErrorResponse> {
         val errorResponse = ErrorResponse(
             code = ex.code,
             message = ex.message ?: "인증을 실패했습니다.",
