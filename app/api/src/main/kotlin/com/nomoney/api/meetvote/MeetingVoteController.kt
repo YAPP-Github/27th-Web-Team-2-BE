@@ -1,5 +1,7 @@
 package com.nomoney.api.meetvote
 
+import com.nomoney.api.auth.getSecurityUserId
+import com.nomoney.api.auth.getSecurityUserIdOrThrow
 import com.nomoney.api.meetvote.model.ConfirmedMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
@@ -28,15 +30,11 @@ import com.nomoney.api.meetvote.model.toSummaryResponse
 import com.nomoney.api.meetvote.model.toUpdateResponse
 import com.nomoney.api.swagger.SwaggerApiOperation
 import com.nomoney.api.swagger.SwaggerApiTag
-import com.nomoney.auth.domain.User
-import com.nomoney.auth.service.AuthService
 import com.nomoney.exception.NotFoundException
-import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
-import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -47,7 +45,6 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class MeetingVoteController(
     private val meetingService: MeetingService,
-    private val authService: AuthService,
 ) {
 
     @Operation(
@@ -72,14 +69,14 @@ class MeetingVoteController(
     )
     @GetMapping("/api/v1/host/meeting")
     fun getHostMeetingInfo(
-        user: User,
         @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
         @RequestParam
         meetId: String,
     ): HostMeetingDetailResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         return meetingService.getHostMeetingDetail(
             meetingId = MeetingId(meetId),
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
         ).toHostDetailResponse()
     }
 
@@ -100,10 +97,9 @@ class MeetingVoteController(
         description = SwaggerApiOperation.MeetingVote.GET_IN_PROGRESS_DASHBOARD_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/dashboard/in-progress")
-    fun getInProgressMeetingDashboard(
-        user: User,
-    ): InProgressMeetingDashboardResponse {
-        return meetingService.getHostMeetingDashboard(user.id).toInProgressResponse()
+    fun getInProgressMeetingDashboard(): InProgressMeetingDashboardResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getHostMeetingDashboard(requesterUserId).toInProgressResponse()
     }
 
     @Operation(
@@ -112,10 +108,9 @@ class MeetingVoteController(
         description = SwaggerApiOperation.MeetingVote.GET_CONFIRMED_DASHBOARD_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/dashboard/confirmed")
-    fun getConfirmedMeetingDashboard(
-        user: User,
-    ): ConfirmedMeetingDashboardResponse {
-        return meetingService.getHostMeetingDashboard(user.id).toConfirmedResponse()
+    fun getConfirmedMeetingDashboard(): ConfirmedMeetingDashboardResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getHostMeetingDashboard(requesterUserId).toConfirmedResponse()
     }
 
     @Operation(
@@ -125,12 +120,12 @@ class MeetingVoteController(
     )
     @GetMapping("/api/v1/host/meeting/finalize/preview")
     fun getFinalizeMeetingPreview(
-        user: User,
         @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
         @RequestParam
         meetId: String,
     ): FinalizeMeetingPreviewResponse {
-        return meetingService.getFinalizePreview(MeetingId(meetId), user.id).toFinalizePreviewResponse()
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getFinalizePreview(MeetingId(meetId), requesterUserId).toFinalizePreviewResponse()
     }
 
     @Operation(
@@ -140,10 +135,9 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/meeting")
     fun createMeeting(
-        httpRequest: HttpServletRequest,
         @RequestBody request: CreateMeetingRequest,
     ): CreateMeetingResponse {
-        val hostUserId = resolveOptionalUserId(httpRequest)
+        val hostUserId = getSecurityUserId()
         val meeting = meetingService.createMeeting(
             title = request.title,
             hostName = request.hostName,
@@ -170,12 +164,12 @@ class MeetingVoteController(
     )
     @PutMapping("/api/v1/host/meeting/memo")
     fun saveMeetingMemo(
-        user: User,
         @RequestBody request: SaveMeetingMemoRequest,
     ): SaveMeetingMemoResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val success = meetingService.saveMeetingMemo(
             meetingId = request.meetingId,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
             memo = request.memo,
         )
         return SaveMeetingMemoResponse(success = success)
@@ -188,12 +182,12 @@ class MeetingVoteController(
     )
     @PutMapping("/api/v1/host/meeting")
     fun updateMeeting(
-        user: User,
         @RequestBody request: UpdateMeetingRequest,
     ): UpdateMeetingResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val meeting = meetingService.updateMeeting(
             meetingId = request.meetingId,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
             title = request.title,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
@@ -263,13 +257,13 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/host/meeting/finalize")
     fun finalizeMeeting(
-        user: User,
         @RequestBody request: FinalizeMeetingRequest,
     ): FinalizeMeetingResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val meeting = meetingService.finalizeMeeting(
             meetingId = request.meetingId,
             selectedDate = request.finalizedDate,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
         )
         return FinalizeMeetingResponse(
             status = meeting.status,
@@ -286,47 +280,14 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/host/meeting/finalize/check")
     fun checkFinalizedDateConflictAndFinalize(
-        user: User,
         @RequestBody request: FinalizeMeetingConflictCheckRequest,
     ): FinalizeMeetingConflictCheckResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val isConflict = meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
             meetingId = request.meetingId,
             finalizedDate = request.finalizedDate,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
         )
         return FinalizeMeetingConflictCheckResponse(isConflict = isConflict)
-    }
-
-    private fun resolveOptionalUserId(httpRequest: HttpServletRequest) =
-        extractAccessToken(httpRequest)?.let { authService.validateToken(it).id }
-
-    private fun extractAccessToken(httpRequest: HttpServletRequest): String? {
-        val authHeader = httpRequest.getHeader(AUTHORIZATION_HEADER)
-        if (authHeader != null) {
-            return extractTokenFromHeader(authHeader)
-        }
-
-        val accessTokenCookie = httpRequest.cookies?.firstOrNull { it.name == ACCESS_TOKEN_COOKIE_NAME } ?: return null
-        if (accessTokenCookie.value.isBlank()) {
-            throw UnauthorizedException("액세스 토큰이 비어있습니다.")
-        }
-        return accessTokenCookie.value
-    }
-
-    private fun extractTokenFromHeader(authHeader: String): String {
-        if (!authHeader.startsWith(BEARER_PREFIX)) {
-            throw UnauthorizedException("Bearer 토큰 형식이 필요합니다.")
-        }
-        val token = authHeader.substring(BEARER_PREFIX.length)
-        if (token.isBlank()) {
-            throw UnauthorizedException("토큰이 비어있습니다.")
-        }
-        return token
-    }
-
-    companion object {
-        private const val AUTHORIZATION_HEADER = "Authorization"
-        private const val BEARER_PREFIX = "Bearer "
-        private const val ACCESS_TOKEN_COOKIE_NAME = "access_token"
     }
 }
