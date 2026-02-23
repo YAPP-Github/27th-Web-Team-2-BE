@@ -1,7 +1,5 @@
 package com.nomoney.api.auth
 
-import com.nomoney.api.auth.model.IssueTokenRequest
-import com.nomoney.api.auth.model.IssueTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
@@ -9,7 +7,6 @@ import com.nomoney.api.config.OAuthRedirectProperties
 import com.nomoney.api.swagger.SwaggerApiOperation
 import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.auth.domain.SocialProvider
-import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
@@ -48,26 +45,6 @@ class AuthController(
         setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
         response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
-    }
-
-    @Operation(
-        summary = SwaggerApiOperation.Auth.ISSUE_TOKEN_SUMMARY,
-        description = SwaggerApiOperation.Auth.ISSUE_TOKEN_DESCRIPTION,
-    )
-    @PostMapping("/api/v1/auth/token")
-    fun issueToken(
-        @RequestBody request: IssueTokenRequest,
-    ): IssueTokenResponse {
-        val tokenPair = authService.issueTokenPair(
-            userId = UserId(request.userId),
-        )
-
-        return IssueTokenResponse(
-            accessToken = tokenPair.accessToken.tokenValue,
-            accessTokenExpiresAt = tokenPair.accessToken.expiresAt,
-            refreshToken = tokenPair.refreshToken.tokenValue,
-            refreshTokenExpiresAt = tokenPair.refreshToken.expiresAt,
-        )
     }
 
     @Operation(
