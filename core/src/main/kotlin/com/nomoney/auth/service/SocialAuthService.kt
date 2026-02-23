@@ -5,6 +5,8 @@ import com.nomoney.auth.domain.SocialUserInfo
 import com.nomoney.auth.domain.TokenPair
 import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.port.UserRepository
+import com.nomoney.exception.NoMoneyException
+import com.nomoney.exception.SocialAuthException
 import org.springframework.stereotype.Service
 
 @Service
@@ -29,11 +31,10 @@ class SocialAuthService(
 
             // 5. 자체 토큰 발급
             authService.issueTokenPair(userId)
+        } catch (e: NoMoneyException) {
+            throw e
         } catch (e: Exception) {
-            if (e is com.nomoney.exception.NoMoneyException) {
-                throw e
-            }
-            throw com.nomoney.exception.SocialAuthException("소셜 로그인 처리 실패: ${e.message}")
+            throw SocialAuthException("소셜 로그인 처리 실패: ${e.message}", e)
         }
     }
 
