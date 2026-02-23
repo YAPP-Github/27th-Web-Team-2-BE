@@ -5,6 +5,6 @@ import com.nomoney.auth.domain.SocialUserInfo
 
 interface SocialOAuthClient {
     fun supports(provider: SocialProvider): Boolean
-    fun getAccessToken(authorizationCode: String): String
+    fun getAccessToken(authorizationCode: String, state: String?): String
     fun getUserInfo(accessToken: String): SocialUserInfo
 }
