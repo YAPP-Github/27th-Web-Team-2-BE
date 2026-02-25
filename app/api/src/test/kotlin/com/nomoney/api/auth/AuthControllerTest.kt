@@ -105,10 +105,10 @@ class AuthControllerTest : DescribeSpec({
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/callback?state=$state") }
             }
 
-            it("state가 local이면 local 환경의 callback 경로로 리다이렉트한다") {
+            it("state가 local|list여도 local 환경의 callback 경로로 리다이렉트한다") {
                 // given
                 val code = "valid-kakao-auth-code"
-                val state = "local"
+                val state = "local|list"
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
