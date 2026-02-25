@@ -134,8 +134,7 @@ class AuthController(
             return null
         }
 
-        val environmentKey = trimmed.split('|', limit = 2).firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
-        return RedirectState(environmentKey = environmentKey)
+        return RedirectState(environmentKey = trimmed)
     }
 
     @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")

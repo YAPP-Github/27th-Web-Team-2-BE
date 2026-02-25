@@ -105,10 +105,10 @@ class AuthControllerTest : DescribeSpec({
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/callback?state=$state") }
             }
 
-            it("state 경로값과 무관하게 local 환경의 callback 경로로 리다이렉트한다") {
+            it("state가 local이면 local 환경의 callback 경로로 리다이렉트한다") {
                 // given
                 val code = "valid-kakao-auth-code"
-                val state = "local|list"
+                val state = "local"
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -226,10 +226,10 @@ class AuthControllerTest : DescribeSpec({
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/callback?state=$state") }
             }
 
-            it("state 값이 환경과 경로 정보를 포함하면 해당 도메인으로 리다이렉트한다") {
+            it("state가 sandbox이면 sandbox callback 경로로 리다이렉트한다") {
                 // given
                 val code = "valid-google-auth-code"
-                val state = "sandbox|auth/callback"
+                val state = "sandbox"
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -263,7 +263,7 @@ class AuthControllerTest : DescribeSpec({
             it("state 환경이 prod인 경우 운영 callback 경로로 리다이렉트한다") {
                 // given
                 val code = "valid-google-auth-code"
-                val state = "prod|/auth/result"
+                val state = "prod"
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
