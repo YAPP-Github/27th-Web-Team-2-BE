@@ -42,7 +42,7 @@ class AuthController(
 
         setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
 
-        response.sendRedirect(oauthRedirectProperties.successUrl + "?state=$state")
+        response.sendRedirect(buildSuccessRedirectUrl(state))
     }
 
     @Operation(summary = "구글 소셜 로그인", description = "구글 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정하고 프론트엔드 URL로 리다이렉트합니다. state 값이 있으면 리다이렉트 URL에 포함됩니다.")
@@ -92,8 +92,44 @@ class AuthController(
     }
 
     private fun buildSuccessRedirectUrl(state: String?): String {
-        val baseUrl = oauthRedirectProperties.successUrl
-        return if (state != null) "$baseUrl?state=$state" else baseUrl
+        val redirectState = state?.let(::parseRedirectState)
+        val environmentBaseUrl = redirectState?.environmentKey
+            ?.lowercase()
+            ?.let { oauthRedirectProperties.domains[it] }
+        val baseUrl = environmentBaseUrl ?: oauthRedirectProperties.successUrl
+        val route = redirectState?.route.takeIf { environmentBaseUrl != null }
+        val urlWithRoute = appendRoute(baseUrl, route)
+
+        return appendStateQueryParam(urlWithRoute, state)
+    }
+
+    private fun appendRoute(baseUrl: String, route: String?): String {
+        val sanitizedRoute = route?.takeIf { it.isNotBlank() } ?: return baseUrl
+        val normalizedBase = baseUrl.trimEnd('/')
+        val normalizedRoute = if (sanitizedRoute.startsWith("/")) sanitizedRoute else "/$sanitizedRoute"
+        return normalizedBase + normalizedRoute
+    }
+
+    private fun appendStateQueryParam(url: String, state: String?): String {
+        val stateValue = state?.takeIf { it.isNotBlank() } ?: return url
+        val delimiter = if (url.contains("?")) "&" else "?"
+        return "$url$delimiter" + "state=$stateValue"
+    }
+
+    private fun parseRedirectState(stateValue: String): RedirectState? {
+        val trimmed = stateValue.trim()
+        if (trimmed.isEmpty()) {
+            return null
+        }
+
+        val segments = trimmed.split('|')
+        val environmentKey = segments.firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
+        val route = segments.getOrNull(1)?.takeIf { it.isNotBlank() }
+
+        return RedirectState(
+            environmentKey = environmentKey,
+            route = route,
+        )
     }
 
     @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")
@@ -172,4 +208,9 @@ class AuthController(
         private const val ACCESS_TOKEN_COOKIE_NAME = "access_token"
         private const val REFRESH_TOKEN_COOKIE_NAME = "refresh_token"
     }
+
+    private data class RedirectState(
+        val environmentKey: String,
+        val route: String?,
+    )
 }
