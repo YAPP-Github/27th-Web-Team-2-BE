@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.net.URI
 import java.time.Duration
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -96,18 +97,29 @@ class AuthController(
         val environmentBaseUrl = redirectState?.environmentKey
             ?.lowercase()
             ?.let { oauthRedirectProperties.domains[it] }
-        val baseUrl = environmentBaseUrl ?: oauthRedirectProperties.successUrl
-        val route = redirectState?.route.takeIf { environmentBaseUrl != null }
-        val urlWithRoute = appendRoute(baseUrl, route)
+        val redirectUrl = environmentBaseUrl
+            ?.let(::buildEnvironmentSuccessUrl)
+            ?: oauthRedirectProperties.successUrl
 
-        return appendStateQueryParam(urlWithRoute, state)
+        return appendStateQueryParam(redirectUrl, state)
     }
 
-    private fun appendRoute(baseUrl: String, route: String?): String {
-        val sanitizedRoute = route?.takeIf { it.isNotBlank() } ?: return baseUrl
+    private fun buildEnvironmentSuccessUrl(baseUrl: String): String {
+        val callbackPath = extractSuccessPath()
+        return appendPath(baseUrl, callbackPath)
+    }
+
+    private fun extractSuccessPath(): String {
+        return runCatching { URI(oauthRedirectProperties.successUrl).path }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_SUCCESS_PATH
+    }
+
+    private fun appendPath(baseUrl: String, path: String): String {
         val normalizedBase = baseUrl.trimEnd('/')
-        val normalizedRoute = if (sanitizedRoute.startsWith("/")) sanitizedRoute else "/$sanitizedRoute"
-        return normalizedBase + normalizedRoute
+        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+        return normalizedBase + normalizedPath
     }
 
     private fun appendStateQueryParam(url: String, state: String?): String {
@@ -122,14 +134,8 @@ class AuthController(
             return null
         }
 
-        val segments = trimmed.split('|')
-        val environmentKey = segments.firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
-        val route = segments.getOrNull(1)?.takeIf { it.isNotBlank() }
-
-        return RedirectState(
-            environmentKey = environmentKey,
-            route = route,
-        )
+        val environmentKey = trimmed.split('|', limit = 2).firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
+        return RedirectState(environmentKey = environmentKey)
     }
 
     @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")
@@ -207,10 +213,10 @@ class AuthController(
     companion object {
         private const val ACCESS_TOKEN_COOKIE_NAME = "access_token"
         private const val REFRESH_TOKEN_COOKIE_NAME = "refresh_token"
+        private const val DEFAULT_SUCCESS_PATH = "/auth/callback"
     }
 
     private data class RedirectState(
         val environmentKey: String,
-        val route: String?,
     )
 }
