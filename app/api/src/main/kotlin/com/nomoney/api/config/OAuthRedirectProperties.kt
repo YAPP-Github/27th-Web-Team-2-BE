@@ -6,4 +6,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class OAuthRedirectProperties(
     val successUrl: String,
     val failureUrl: String,
+    val domains: Map<String, String> = emptyMap(),
 )
