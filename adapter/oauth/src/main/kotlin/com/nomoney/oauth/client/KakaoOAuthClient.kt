@@ -29,23 +29,19 @@ class KakaoOAuthClient(
 
     override fun getAccessToken(authorizationCode: String, state: String?, redirectUri: String): String {
         val url = "https://kauth.kakao.com/oauth/token"
-
-        val headers = HttpHeaders().apply {
-            contentType = MediaType.APPLICATION_FORM_URLENCODED
-        }
-        val body = LinkedMultiValueMap<String, String>().apply {
-            add("grant_type", "authorization_code")
-            add("client_id", properties.clientId)
-            add("client_secret", properties.clientSecret)
-            add("redirect_uri", redirectUri)
-            add("code", authorizationCode)
-            if (state != null) add("state", state)
+        val request = buildMap {
+            put("code", authorizationCode)
+            put("client_id", properties.clientId)
+            put("client_secret", properties.clientSecret)
+            put("redirect_uri", redirectUri)
+            put("grant_type", "authorization_code")
+            if (state != null) put("state", state)
         }
 
-        logger.info(objectMapper.writeValueAsString(body))
+        logger.info(objectMapper.writeValueAsString(request))
 
         val response = try {
-            restTemplate.postForObject(url, HttpEntity(body, headers), KakaoTokenResponse::class.java)
+            restTemplate.postForObject(url, request,KakaoTokenResponse::class.java)
         } catch (e: Exception) {
             throw RuntimeException("카카오 액세스 토큰 발급 실패: ${e.message}", e)
         }
