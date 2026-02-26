@@ -10,10 +10,13 @@ import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
+import com.nomoney.auth.service.SocialLinkService
+import com.nomoney.auth.service.SocialLinkTokenService
 import io.kotest.core.spec.style.DescribeSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import java.time.LocalDateTime
 
@@ -21,6 +24,8 @@ class AuthControllerTest : DescribeSpec({
 
     val authService = mockk<AuthService>()
     val socialAuthService = mockk<SocialAuthService>()
+    val socialLinkService = mockk<SocialLinkService>()
+    val socialLinkTokenService = mockk<SocialLinkTokenService>()
     val anonymousAuthService = mockk<AnonymousAuthService>()
     val oauthRedirectProperties = OAuthRedirectProperties(
         successUrl = "https://example.com/auth/callback",
@@ -31,7 +36,7 @@ class AuthControllerTest : DescribeSpec({
             "prod" to "https://weddin.kr",
         ),
     )
-    val authController = AuthController(authService, socialAuthService, anonymousAuthService, oauthRedirectProperties)
+    val authController = AuthController(authService, socialAuthService, socialLinkService, socialLinkTokenService, anonymousAuthService, oauthRedirectProperties)
 
     describe("AuthController") {
 
@@ -41,6 +46,7 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "valid-kakao-auth-code"
                 val state = "state"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -61,10 +67,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/kakao")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state, any()) } returns tokenPair
 
                 // when
-                authController.kakaoLogin(code, state, httpServletResponse)
+                authController.kakaoLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -75,6 +82,7 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "valid-kakao-auth-code"
                 val state = "random-csrf-token"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -95,10 +103,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/kakao")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state, any()) } returns tokenPair
 
                 // when
-                authController.kakaoLogin(code, state, httpServletResponse)
+                authController.kakaoLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -109,6 +118,7 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "valid-kakao-auth-code"
                 val state = "local|list"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -129,10 +139,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/kakao")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state, any()) } returns tokenPair
 
                 // when
-                authController.kakaoLogin(code, state, httpServletResponse)
+                authController.kakaoLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -143,14 +154,16 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "invalid-kakao-code"
                 val state = "state"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
 
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/kakao")
                 every {
-                    socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state)
+                    socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state, any())
                 } throws RuntimeException("카카오 로그인 실패")
 
                 // when
-                authController.kakaoLogin(code, state, httpServletResponse)
+                authController.kakaoLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/failure") }
@@ -162,6 +175,7 @@ class AuthControllerTest : DescribeSpec({
             it("유효한 인증 코드로 요청 시 토큰 쿠키를 설정하고 성공 URL로 리다이렉트한다") {
                 // given
                 val code = "valid-google-auth-code"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -182,10 +196,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, null) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/google")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, null, any()) } returns tokenPair
 
                 // when
-                authController.googleLogin(code, null, httpServletResponse)
+                authController.googleLogin(code, null, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -196,6 +211,7 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "valid-google-auth-code"
                 val state = "random-csrf-token"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -216,10 +232,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/google")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state, any()) } returns tokenPair
 
                 // when
-                authController.googleLogin(code, state, httpServletResponse)
+                authController.googleLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -230,6 +247,7 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "valid-google-auth-code"
                 val state = "sandbox"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -250,10 +268,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/google")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state, any()) } returns tokenPair
 
                 // when
-                authController.googleLogin(code, state, httpServletResponse)
+                authController.googleLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -264,6 +283,7 @@ class AuthControllerTest : DescribeSpec({
                 // given
                 val code = "valid-google-auth-code"
                 val state = "prod"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
                 val userId = UserId(1L)
                 val now = LocalDateTime.now()
@@ -284,10 +304,11 @@ class AuthControllerTest : DescribeSpec({
                     ),
                 )
 
-                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state) } returns tokenPair
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/google")
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state, any()) } returns tokenPair
 
                 // when
-                authController.googleLogin(code, state, httpServletResponse)
+                authController.googleLogin(code, state, httpServletRequest, httpServletResponse)
 
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
@@ -297,14 +318,16 @@ class AuthControllerTest : DescribeSpec({
             it("소셜 로그인 실패 시 실패 URL로 리다이렉트한다") {
                 // given
                 val code = "invalid-google-code"
+                val httpServletRequest = mockk<HttpServletRequest>()
                 val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
 
+                every { httpServletRequest.requestURL } returns StringBuffer("https://nomoney.kr/api/v1/auth/oauth/google")
                 every {
-                    socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, null)
+                    socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, null, any())
                 } throws RuntimeException("구글 로그인 실패")
 
                 // when
-                authController.googleLogin(code, null, httpServletResponse)
+                authController.googleLogin(code, null, httpServletRequest, httpServletResponse)
 
                 // then
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/failure") }
