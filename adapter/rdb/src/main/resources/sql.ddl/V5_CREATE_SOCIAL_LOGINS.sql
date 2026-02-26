@@ -25,3 +25,25 @@ CREATE TRIGGER update_social_logins_updated_at
     BEFORE UPDATE ON social_logins
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
+
+-- social_link_tokens 테이블 생성
+-- 소셜 계정 연동을 위한 일회성 토큰 (UUID, 10분 TTL)
+CREATE TABLE IF NOT EXISTS social_link_tokens (
+                                                  token_id    BIGSERIAL    PRIMARY KEY,
+                                                  token_value VARCHAR(36)  NOT NULL UNIQUE,
+    user_id     BIGINT       NOT NULL,
+    expires_at  TIMESTAMPTZ  NOT NULL,
+    used        BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+CREATE INDEX IF NOT EXISTS idx_social_link_tokens_token_value ON social_link_tokens (token_value);
+CREATE INDEX IF NOT EXISTS idx_social_link_tokens_createdat ON social_link_tokens (created_at);
+CREATE INDEX IF NOT EXISTS idx_social_link_tokens_updatedat ON social_link_tokens (updated_at);
+
+-- 트리거 적용
+CREATE TRIGGER update_social_link_tokens_updated_at
+    BEFORE UPDATE ON social_link_tokens
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
