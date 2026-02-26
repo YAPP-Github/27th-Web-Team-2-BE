@@ -11,9 +11,7 @@ import com.nomoney.support.logging.logger
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
-import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 
 @Component
@@ -41,7 +39,7 @@ class KakaoOAuthClient(
         logger.info(objectMapper.writeValueAsString(request))
 
         val response = try {
-            restTemplate.postForObject(url, request,KakaoTokenResponse::class.java)
+            restTemplate.postForObject(url, request, KakaoTokenResponse::class.java)
         } catch (e: Exception) {
             throw RuntimeException("카카오 액세스 토큰 발급 실패: ${e.message}", e)
         }
