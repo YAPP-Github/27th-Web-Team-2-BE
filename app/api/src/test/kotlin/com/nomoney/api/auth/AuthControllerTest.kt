@@ -21,8 +21,16 @@ class AuthControllerTest : DescribeSpec({
 
     val authService = mockk<AuthService>()
     val socialAuthService = mockk<SocialAuthService>()
-    val oauthRedirectProperties = mockk<OAuthRedirectProperties>()
     val anonymousAuthService = mockk<AnonymousAuthService>()
+    val oauthRedirectProperties = OAuthRedirectProperties(
+        successUrl = "https://example.com/auth/callback",
+        failureUrl = "https://example.com/auth/failure",
+        domains = mapOf(
+            "local" to "http://localhost:3000",
+            "sandbox" to "https://dev.weddin.kr",
+            "prod" to "https://weddin.kr",
+        ),
+    )
     val authController = AuthController(authService, socialAuthService, anonymousAuthService, oauthRedirectProperties)
 
     describe("AuthController") {
@@ -54,7 +62,6 @@ class AuthControllerTest : DescribeSpec({
                 )
 
                 every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
-                every { oauthRedirectProperties.successUrl } returns "https://example.com/auth/callback"
 
                 // when
                 authController.kakaoLogin(code, state, httpServletResponse)
@@ -89,7 +96,6 @@ class AuthControllerTest : DescribeSpec({
                 )
 
                 every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
-                every { oauthRedirectProperties.successUrl } returns "https://example.com/auth/callback"
 
                 // when
                 authController.kakaoLogin(code, state, httpServletResponse)
@@ -97,6 +103,40 @@ class AuthControllerTest : DescribeSpec({
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/callback?state=$state") }
+            }
+
+            it("state가 local|list여도 local 환경의 callback 경로로 리다이렉트한다") {
+                // given
+                val code = "valid-kakao-auth-code"
+                val state = "local|list"
+                val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
+                val userId = UserId(1L)
+                val now = LocalDateTime.now()
+                val tokenPair = TokenPair(
+                    accessToken = AuthToken(
+                        tokenValue = "kakao-access-token-value",
+                        userId = userId,
+                        expiresAt = now.plusDays(30),
+                        createdAt = now,
+                    ),
+                    refreshToken = RefreshToken(
+                        id = RefreshTokenId(1L),
+                        tokenValue = "kakao-refresh-token-value",
+                        userId = userId,
+                        expiresAt = now.plusDays(90),
+                        used = false,
+                        createdAt = now,
+                    ),
+                )
+
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state) } returns tokenPair
+
+                // when
+                authController.kakaoLogin(code, state, httpServletResponse)
+
+                // then
+                verify(exactly = 2) { httpServletResponse.addCookie(any()) }
+                verify { httpServletResponse.sendRedirect("http://localhost:3000/auth/callback?state=$state") }
             }
 
             it("소셜 로그인 실패 시 실패 URL로 리다이렉트한다") {
@@ -108,7 +148,6 @@ class AuthControllerTest : DescribeSpec({
                 every {
                     socialAuthService.loginWithSocialProvider(SocialProvider.KAKAO, code, state)
                 } throws RuntimeException("카카오 로그인 실패")
-                every { oauthRedirectProperties.failureUrl } returns "https://example.com/auth/failure"
 
                 // when
                 authController.kakaoLogin(code, state, httpServletResponse)
@@ -144,7 +183,6 @@ class AuthControllerTest : DescribeSpec({
                 )
 
                 every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, null) } returns tokenPair
-                every { oauthRedirectProperties.successUrl } returns "https://example.com/auth/callback"
 
                 // when
                 authController.googleLogin(code, null, httpServletResponse)
@@ -179,7 +217,6 @@ class AuthControllerTest : DescribeSpec({
                 )
 
                 every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state) } returns tokenPair
-                every { oauthRedirectProperties.successUrl } returns "https://example.com/auth/callback"
 
                 // when
                 authController.googleLogin(code, state, httpServletResponse)
@@ -187,6 +224,74 @@ class AuthControllerTest : DescribeSpec({
                 // then
                 verify(exactly = 2) { httpServletResponse.addCookie(any()) }
                 verify { httpServletResponse.sendRedirect("https://example.com/auth/callback?state=$state") }
+            }
+
+            it("state가 sandbox이면 sandbox callback 경로로 리다이렉트한다") {
+                // given
+                val code = "valid-google-auth-code"
+                val state = "sandbox"
+                val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
+                val userId = UserId(1L)
+                val now = LocalDateTime.now()
+                val tokenPair = TokenPair(
+                    accessToken = AuthToken(
+                        tokenValue = "google-access-token-value",
+                        userId = userId,
+                        expiresAt = now.plusDays(30),
+                        createdAt = now,
+                    ),
+                    refreshToken = RefreshToken(
+                        id = RefreshTokenId(1L),
+                        tokenValue = "google-refresh-token-value",
+                        userId = userId,
+                        expiresAt = now.plusDays(90),
+                        used = false,
+                        createdAt = now,
+                    ),
+                )
+
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state) } returns tokenPair
+
+                // when
+                authController.googleLogin(code, state, httpServletResponse)
+
+                // then
+                verify(exactly = 2) { httpServletResponse.addCookie(any()) }
+                verify { httpServletResponse.sendRedirect("https://dev.weddin.kr/auth/callback?state=$state") }
+            }
+
+            it("state 환경이 prod인 경우 운영 callback 경로로 리다이렉트한다") {
+                // given
+                val code = "valid-google-auth-code"
+                val state = "prod"
+                val httpServletResponse = mockk<HttpServletResponse>(relaxed = true)
+                val userId = UserId(1L)
+                val now = LocalDateTime.now()
+                val tokenPair = TokenPair(
+                    accessToken = AuthToken(
+                        tokenValue = "google-access-token-value",
+                        userId = userId,
+                        expiresAt = now.plusDays(30),
+                        createdAt = now,
+                    ),
+                    refreshToken = RefreshToken(
+                        id = RefreshTokenId(1L),
+                        tokenValue = "google-refresh-token-value",
+                        userId = userId,
+                        expiresAt = now.plusDays(90),
+                        used = false,
+                        createdAt = now,
+                    ),
+                )
+
+                every { socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, state) } returns tokenPair
+
+                // when
+                authController.googleLogin(code, state, httpServletResponse)
+
+                // then
+                verify(exactly = 2) { httpServletResponse.addCookie(any()) }
+                verify { httpServletResponse.sendRedirect("https://weddin.kr/auth/callback?state=$state") }
             }
 
             it("소셜 로그인 실패 시 실패 URL로 리다이렉트한다") {
@@ -197,7 +302,6 @@ class AuthControllerTest : DescribeSpec({
                 every {
                     socialAuthService.loginWithSocialProvider(SocialProvider.GOOGLE, code, null)
                 } throws RuntimeException("구글 로그인 실패")
-                every { oauthRedirectProperties.failureUrl } returns "https://example.com/auth/failure"
 
                 // when
                 authController.googleLogin(code, null, httpServletResponse)

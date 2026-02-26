@@ -1,5 +1,6 @@
 package com.nomoney.api.exception
 
+import com.nomoney.exception.AuthException
 import com.nomoney.exception.ClientException
 import com.nomoney.exception.NoMoneyException
 import org.springframework.http.HttpStatus
@@ -16,6 +17,16 @@ import org.springframework.web.servlet.NoHandlerFoundException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthException::class)
+    fun handleAuthException(ex: AuthException): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            code = ex.code,
+            message = ex.message ?: "인증을 실패했습니다.",
+            messageForDev = ex.messageForDev,
+        )
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse)
+    }
 
     @ExceptionHandler(ClientException::class)
     fun handleClientException(ex: ClientException): ResponseEntity<ErrorResponse> {

@@ -8,8 +8,12 @@ aws:
 
 oauth:
   redirect:
-    success-url: ${OAUTH_SUCCESS_URL:http://localhost:3000/test/login/result}
-    failure-url: ${OAUTH_FAILURE_URL:http://localhost:3000/test/login/error}
+    success-url: ${OAUTH_SUCCESS_URL:http://localhost:3000/auth/callback}
+    failure-url: ${OAUTH_FAILURE_URL:http://localhost:3000/auth/failure}
+    domains:
+      local: ${OAUTH_REDIRECT_DOMAIN_LOCAL:http://localhost:3000}
+      sandbox: ${OAUTH_REDIRECT_DOMAIN_SANDBOX:https://dev.weddin.kr}
+      prod: ${OAUTH_REDIRECT_DOMAIN_PROD:https://weddin.kr}
 
 management:
   endpoints:
