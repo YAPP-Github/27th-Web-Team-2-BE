@@ -2,6 +2,7 @@ package com.nomoney.api.auth
 
 import com.nomoney.api.auth.model.TokenAuthentication
 import com.nomoney.auth.service.AuthService
+import com.nomoney.exception.NoMoneyException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -20,16 +21,9 @@ class TokenAuthenticationFilter(
         filterChain: FilterChain,
     ) {
         try {
-            val authHeader = request.getHeader(HEADER_AUTHORIZATION) ?: return
-            val headerData = authHeader.split(' ')
+            val accessToken = resolveToken(request) ?: return
 
-            if (headerData.size != 2) return
-            if (headerData[0].lowercase() != AUTHORIZATION_METHOD) return
-            if (headerData[1].isBlank()) return
-
-            val accessToken = headerData[1]
-
-            val user = authService.validateToken(accessToken) ?: return
+            val user = authService.validateToken(accessToken)
 
             MDC.put("userId", user.id.value.toString())
 
@@ -41,13 +35,31 @@ class TokenAuthenticationFilter(
                 user.id,
                 emptyList(), // authorities.map { SimpleGrantedAuthority(it.name) },
             )
+        } catch (e: NoMoneyException) {
+            request.setAttribute(TOKEN_VALIDATION_ERROR_ATTR, e)
         } finally {
             filterChain.doFilter(request, response)
         }
     }
 
+    private fun resolveToken(request: HttpServletRequest): String? {
+        val authHeader = request.getHeader(HEADER_AUTHORIZATION)
+        if (authHeader != null) {
+            val headerData = authHeader.split(' ')
+            if (headerData.size == 2 && headerData[0].lowercase() == AUTHORIZATION_METHOD && headerData[1].isNotBlank()) {
+                return headerData[1]
+            }
+        }
+
+        return request.cookies
+            ?.firstOrNull { it.name == COOKIE_ACCESS_TOKEN }
+            ?.value
+            ?.takeIf { it.isNotBlank() }
+    }
+
     companion object {
         private const val HEADER_AUTHORIZATION = "Authorization"
         private const val AUTHORIZATION_METHOD = "bearer"
+        private const val COOKIE_ACCESS_TOKEN = "access_token"
     }
 }
