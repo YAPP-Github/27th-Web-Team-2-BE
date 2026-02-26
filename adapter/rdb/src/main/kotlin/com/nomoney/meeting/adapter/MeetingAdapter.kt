@@ -1,5 +1,6 @@
 package com.nomoney.meeting.adapter
 
+import com.nomoney.auth.domain.UserId
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.Participant
@@ -52,9 +53,12 @@ class MeetingAdapter(
             id = MeetingId(this.meetId),
             title = this.title,
             hostName = this.hostName,
+            hostUserId = this.hostUserId?.let(::UserId),
             dates = this.dates.map { it.availableDate }.toSet(),
-            maxParticipantCount = null,
+            maxParticipantCount = this.maxParticipantCount,
             participants = this.participants.map { it.toDomain() },
+            status = this.status,
+            finalizedDate = this.finalizedDate,
         )
     }
 
@@ -73,6 +77,10 @@ class MeetingAdapter(
             meetId = this.id.value,
             title = this.title,
             hostName = this.hostName,
+            hostUserId = this.hostUserId?.value,
+            maxParticipantCount = this.maxParticipantCount,
+            status = this.status,
+            finalizedDate = this.finalizedDate,
         )
 
         meetingEntity.addMeetingDates(this.dates)
@@ -122,7 +130,26 @@ class MeetingAdapter(
 
     private fun MeetingJpaEntity.updateFrom(meeting: Meeting) {
         this.title = meeting.title
+        this.hostUserId = meeting.hostUserId?.value
+        this.maxParticipantCount = meeting.maxParticipantCount
+        this.status = meeting.status
+        this.finalizedDate = meeting.finalizedDate
+        this.updateMeetingDates(meeting.dates)
         this.updateParticipants(meeting.participants)
+    }
+
+    private fun MeetingJpaEntity.updateMeetingDates(dates: Set<LocalDate>) {
+        this.dates.removeIf { it.availableDate !in dates }
+        val existingDates = this.dates.map { it.availableDate }.toSet()
+        val datesToAdd = dates - existingDates
+        datesToAdd.forEach { date ->
+            this.dates.add(
+                MeetingDateJpaEntity.of(
+                    meeting = this,
+                    availableDate = date,
+                ),
+            )
+        }
     }
 
     private fun MeetingJpaEntity.updateParticipants(participants: List<Participant>) {
