@@ -32,3 +32,9 @@ data class RefreshTokenCookieResponse(
     @Schema(description = "메시지")
     val message: String = "토큰이 갱신되었습니다.",
 )
+
+@Schema(description = "소셜 연동 토큰 발급 응답")
+data class IssueLinkTokenResponse(
+    @Schema(description = "일회성 연동 토큰 (UUID, 10분 유효)", example = "550e8400-e29b-41d4-a716-446655440000")
+    val linkToken: String,
+)
