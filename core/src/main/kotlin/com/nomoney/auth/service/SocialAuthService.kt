@@ -18,10 +18,10 @@ class SocialAuthService(
     private val authService: AuthService,
     private val socialOAuthClientRegistry: SocialOAuthClientRegistry,
 ) {
-    fun loginWithSocialProvider(provider: SocialProvider, authorizationCode: String, state: String?): TokenPair {
+    fun loginWithSocialProvider(provider: SocialProvider, authorizationCode: String, state: String?, redirectUri: String): TokenPair {
         return try {
             val oauthClient = socialOAuthClientRegistry.getClient(provider)
-            val accessToken = oauthClient.getAccessToken(authorizationCode, state)
+            val accessToken = oauthClient.getAccessToken(authorizationCode, state, redirectUri)
             val socialUserInfo = oauthClient.getUserInfo(accessToken)
 
             val userId = getOrCreateUser(socialUserInfo)

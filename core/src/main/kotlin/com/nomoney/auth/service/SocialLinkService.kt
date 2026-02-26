@@ -16,9 +16,9 @@ class SocialLinkService(
     private val socialOAuthClientRegistry: SocialOAuthClientRegistry,
 ) {
     @Transactional
-    fun linkSocialAccount(currentUserId: UserId, provider: SocialProvider, authorizationCode: String, state: String?) {
+    fun linkSocialAccount(currentUserId: UserId, provider: SocialProvider, authorizationCode: String, redirectUri: String, state: String?) {
         val oauthClient = socialOAuthClientRegistry.getClient(provider)
-        val accessToken = oauthClient.getAccessToken(authorizationCode, state)
+        val accessToken = oauthClient.getAccessToken(authorizationCode, state, redirectUri)
         val socialUserInfo = oauthClient.getUserInfo(accessToken)
 
         val existingSocialLogin = socialLoginRepository.findByProviderAndSocialId(

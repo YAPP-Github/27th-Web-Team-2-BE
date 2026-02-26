@@ -61,6 +61,7 @@ class AuthController(
     fun googleLogin(
         @RequestParam code: String,
         @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
         try {
@@ -68,6 +69,7 @@ class AuthController(
                 provider = SocialProvider.GOOGLE,
                 authorizationCode = code,
                 state = state,
+                redirectUri = request.requestURL.toString(),
             )
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
@@ -84,6 +86,7 @@ class AuthController(
     fun kakaoLogin(
         @RequestParam code: String,
         @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
         try {
@@ -91,6 +94,7 @@ class AuthController(
                 provider = SocialProvider.KAKAO,
                 authorizationCode = code,
                 state = state,
+                redirectUri = request.requestURL.toString(),
             )
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
@@ -119,13 +123,14 @@ class AuthController(
     fun googleLink(
         @RequestParam code: String,
         @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
         try {
             val linkState = parseLinkRedirectState(state)
 
             val userId = socialLinkTokenService.consumeLinkToken(linkState.linkToken)
-            socialLinkService.linkSocialAccount(userId, SocialProvider.GOOGLE, code, state)
+            socialLinkService.linkSocialAccount(userId, SocialProvider.GOOGLE, code, request.requestURL.toString(), state)
 
             response.sendRedirect(buildSuccessRedirectUrl(state))
         } catch (e: Exception) {
@@ -139,13 +144,14 @@ class AuthController(
     fun kakaoLink(
         @RequestParam code: String,
         @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
         try {
             val linkState = parseLinkRedirectState(state)
 
             val userId = socialLinkTokenService.consumeLinkToken(linkState.linkToken)
-            socialLinkService.linkSocialAccount(userId, SocialProvider.KAKAO, code, state)
+            socialLinkService.linkSocialAccount(userId, SocialProvider.KAKAO, code, request.requestURL.toString(), state)
 
             response.sendRedirect(buildSuccessRedirectUrl(state))
         } catch (e: Exception) {
