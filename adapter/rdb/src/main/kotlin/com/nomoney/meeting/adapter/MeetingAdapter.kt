@@ -1,5 +1,6 @@
 package com.nomoney.meeting.adapter
 
+import com.nomoney.auth.domain.UserId
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.Participant
@@ -31,6 +32,11 @@ class MeetingAdapter(
     override fun findAll(): List<Meeting> {
         return meetingJpaRepository.findAll()
             .map { it.toDomain() }
+    }
+
+    @Transactional
+    override fun reassignHostUserId(fromUserId: UserId, toUserId: UserId) {
+        meetingJpaRepository.updateHostUserId(fromUserId.value, toUserId.value)
     }
 
     @Transactional
