@@ -1,5 +1,6 @@
 package com.nomoney.api.auth
 
+import com.nomoney.api.auth.model.GetLinkedSocialAccountsResponse
 import com.nomoney.api.auth.model.IssueLinkTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
@@ -158,6 +159,14 @@ class AuthController(
             logger.error("카카오 연동 실패", e)
             response.sendRedirect(oauthRedirectProperties.failureUrl)
         }
+    }
+
+    @Operation(summary = "연동된 소셜 계정 목록 조회", description = "현재 로그인한 사용자에게 연동된 소셜 계정 프로바이더 목록을 반환합니다.")
+    @GetMapping("/api/v1/auth/me/social-accounts")
+    fun getLinkedSocialAccounts(): GetLinkedSocialAccountsResponse {
+        val userId = getSecurityUserIdOrThrow()
+        val providers = socialLinkService.getLinkedSocialAccounts(userId)
+        return GetLinkedSocialAccountsResponse(providers = providers.map { it.name })
     }
 
     // =========================================================

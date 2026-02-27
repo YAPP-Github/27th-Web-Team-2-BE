@@ -38,3 +38,9 @@ data class IssueLinkTokenResponse(
     @Schema(description = "일회성 연동 토큰 (UUID, 10분 유효)", example = "550e8400-e29b-41d4-a716-446655440000")
     val linkToken: String,
 )
+
+@Schema(description = "연동된 소셜 계정 목록 응답")
+data class GetLinkedSocialAccountsResponse(
+    @Schema(description = "연동된 소셜 프로바이더 목록", example = "[\"GOOGLE\", \"KAKAO\"]")
+    val providers: List<String>,
+)
