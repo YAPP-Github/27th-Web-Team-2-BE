@@ -2,8 +2,6 @@ package com.nomoney.api.auth
 
 import com.nomoney.api.auth.model.GetLinkedSocialAccountsResponse
 import com.nomoney.api.auth.model.IssueLinkTokenResponse
-import com.nomoney.api.auth.model.IssueTokenRequest
-import com.nomoney.api.auth.model.IssueTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
@@ -11,7 +9,6 @@ import com.nomoney.api.config.OAuthRedirectProperties
 import com.nomoney.api.swagger.SwaggerApiOperation
 import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.auth.domain.SocialProvider
-import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService

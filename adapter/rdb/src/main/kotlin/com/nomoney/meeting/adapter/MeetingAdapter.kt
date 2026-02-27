@@ -62,6 +62,7 @@ class MeetingAdapter(
             dates = this.dates.map { it.availableDate }.toSet(),
             maxParticipantCount = this.maxParticipantCount,
             participants = this.participants.map { it.toDomain() },
+            memo = this.memo,
             status = this.status,
             finalizedDate = this.finalizedDate,
         )
@@ -84,6 +85,7 @@ class MeetingAdapter(
             hostName = this.hostName,
             hostUserId = this.hostUserId?.value,
             maxParticipantCount = this.maxParticipantCount,
+            memo = this.memo,
             status = this.status,
             finalizedDate = this.finalizedDate,
         )
@@ -137,6 +139,7 @@ class MeetingAdapter(
         this.title = meeting.title
         this.hostUserId = meeting.hostUserId?.value
         this.maxParticipantCount = meeting.maxParticipantCount
+        this.memo = meeting.memo
         this.status = meeting.status
         this.finalizedDate = meeting.finalizedDate
         this.updateMeetingDates(meeting.dates)

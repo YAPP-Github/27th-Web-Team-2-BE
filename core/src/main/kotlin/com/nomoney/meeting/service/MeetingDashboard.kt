@@ -30,4 +30,5 @@ data class MeetingDashboardCard(
     val finalizedDate: LocalDate?,
     val completedVoteCount: Int,
     val totalVoteCount: Int,
+    val memo: String?,
 )

@@ -1,10 +1,11 @@
 package com.nomoney.api.meetvote
 
+import com.nomoney.api.auth.model.TokenAuthentication
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
+import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
-import com.nomoney.auth.domain.User
 import com.nomoney.auth.domain.UserId
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
@@ -14,6 +15,7 @@ import com.nomoney.meeting.service.MeetingDashboardCard
 import com.nomoney.meeting.service.MeetingDashboardSummary
 import com.nomoney.meeting.service.MeetingDateVoteDetail
 import com.nomoney.meeting.service.MeetingFinalizePreview
+import com.nomoney.meeting.service.MeetingHostDetail
 import com.nomoney.meeting.service.MeetingService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -22,32 +24,70 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.time.LocalDate
+import org.springframework.security.core.context.SecurityContextHolder
 
 class MeetingVoteControllerTest : DescribeSpec({
 
     val meetingService = mockk<MeetingService>()
     val controller = MeetingVoteController(meetingService)
-    val authenticatedUser = User(UserId(1L))
+    val authenticatedUserId = UserId(1L)
 
     beforeTest {
         clearMocks(meetingService)
+        clearSecurityContext()
+    }
+
+    afterTest {
+        clearSecurityContext()
     }
 
     describe("MeetingVoteController") {
+        describe("GET /api/v1/host/meeting") {
+            it("주최자용 모임 상세 정보를 조회한다") {
+                val meeting = fixtureMeeting(
+                    id = MeetingId("host-detail"),
+                    status = MeetingStatus.VOTING,
+                ).copy(
+                    maxParticipantCount = 5,
+                    memo = "회의실 예약 완료",
+                )
+                every {
+                    meetingService.getHostMeetingDetail(
+                        meetingId = meeting.id,
+                        requesterUserId = authenticatedUserId,
+                    )
+                } returns MeetingHostDetail(
+                    meeting = meeting,
+                    notVotedParticipantCount = 3,
+                )
+
+                setSecurityContext(authenticatedUserId)
+
+                val response = controller.getHostMeetingInfo(
+                    meetId = meeting.id.value,
+                )
+
+                response.id shouldBe meeting.id
+                response.memo shouldBe "회의실 예약 완료"
+                response.notVotedParticipantCount shouldBe 3
+            }
+        }
+
         describe("POST /api/v1/host/meeting/finalize") {
             it("모임 확정 요청 시 CONFIRMED 상태와 확정 날짜를 반환한다") {
                 val meetingId = MeetingId("test-meeting")
                 val finalizedDate = LocalDate.of(2026, 2, 20)
                 every {
-                    meetingService.finalizeMeeting(meetingId, finalizedDate, authenticatedUser.id)
+                    meetingService.finalizeMeeting(meetingId, finalizedDate, authenticatedUserId)
                 } returns fixtureMeeting(
                     id = meetingId,
                     status = MeetingStatus.CONFIRMED,
                     finalizedDate = finalizedDate,
                 )
 
+                setSecurityContext(authenticatedUserId)
+
                 val response = controller.finalizeMeeting(
-                    authenticatedUser,
                     FinalizeMeetingRequest(
                         meetingId = meetingId,
                         finalizedDate = finalizedDate,
@@ -67,12 +107,13 @@ class MeetingVoteControllerTest : DescribeSpec({
                     meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
                         meetingId = meetingId,
                         finalizedDate = finalizedDate,
-                        requesterUserId = authenticatedUser.id,
+                        requesterUserId = authenticatedUserId,
                     )
                 } returns false
 
+                setSecurityContext(authenticatedUserId)
+
                 val response = controller.checkFinalizedDateConflictAndFinalize(
-                    authenticatedUser,
                     FinalizeMeetingConflictCheckRequest(
                         meetingId = meetingId,
                         finalizedDate = finalizedDate,
@@ -87,7 +128,7 @@ class MeetingVoteControllerTest : DescribeSpec({
             it("모임 확정 후보 정보를 반환한다") {
                 val meetingId = MeetingId("meeting-a")
                 every {
-                    meetingService.getFinalizePreview(meetingId, authenticatedUser.id)
+                    meetingService.getFinalizePreview(meetingId, authenticatedUserId)
                 } returns MeetingFinalizePreview(
                     meetingId = meetingId,
                     meetingTitle = "모임A",
@@ -106,8 +147,9 @@ class MeetingVoteControllerTest : DescribeSpec({
                     requiresDateSelection = true,
                 )
 
+                setSecurityContext(authenticatedUserId)
+
                 val response = controller.getFinalizeMeetingPreview(
-                    user = authenticatedUser,
                     meetId = meetingId.value,
                 )
 
@@ -119,7 +161,7 @@ class MeetingVoteControllerTest : DescribeSpec({
         }
 
         describe("POST /api/v1/meeting") {
-            it("모임 생성 시 maxParticipantCount를 서비스로 전달한다") {
+            it("토큰이 있으면 userId를 포함해 모임을 생성한다") {
                 val meetingId = MeetingId("created-meeting")
                 val request = CreateMeetingRequest(
                     title = "신규 모임",
@@ -127,11 +169,12 @@ class MeetingVoteControllerTest : DescribeSpec({
                     maxParticipantCount = 5,
                     dates = listOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
                 )
+                setSecurityContext(authenticatedUserId)
                 every {
                     meetingService.createMeeting(
                         title = request.title,
                         hostName = request.hostName,
-                        hostUserId = authenticatedUser.id,
+                        hostUserId = authenticatedUserId,
                         dates = request.dates.toSet(),
                         maxParticipantCount = request.maxParticipantCount,
                     )
@@ -151,25 +194,96 @@ class MeetingVoteControllerTest : DescribeSpec({
                     status = MeetingStatus.VOTING,
                 )
 
-                val response = controller.createMeeting(authenticatedUser, request)
+                val response = controller.createMeeting(request)
 
                 response.id shouldBe meetingId
                 verify(exactly = 1) {
                     meetingService.createMeeting(
                         title = request.title,
                         hostName = request.hostName,
-                        hostUserId = authenticatedUser.id,
+                        hostUserId = authenticatedUserId,
                         dates = request.dates.toSet(),
                         maxParticipantCount = 5,
                     )
                 }
+            }
+
+            it("토큰이 없으면 hostUserId 없이 모임을 생성한다") {
+                val meetingId = MeetingId("created-meeting-anonymous")
+                val request = CreateMeetingRequest(
+                    title = "비로그인 모임",
+                    hostName = "익명 주최자",
+                    maxParticipantCount = 3,
+                    dates = listOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                )
+                clearSecurityContext()
+                every {
+                    meetingService.createMeeting(
+                        title = request.title,
+                        hostName = request.hostName,
+                        hostUserId = null,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = request.maxParticipantCount,
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                ).copy(hostUserId = null)
+                every {
+                    meetingService.addParticipant(
+                        meetingId = meetingId,
+                        name = request.hostName,
+                        voteDates = emptySet(),
+                        hasVoted = false,
+                    )
+                } returns fixtureMeeting(
+                    id = meetingId,
+                    status = MeetingStatus.VOTING,
+                ).copy(hostUserId = null)
+
+                val response = controller.createMeeting(request)
+
+                response.id shouldBe meetingId
+                verify(exactly = 1) {
+                    meetingService.createMeeting(
+                        title = request.title,
+                        hostName = request.hostName,
+                        hostUserId = null,
+                        dates = request.dates.toSet(),
+                        maxParticipantCount = 3,
+                    )
+                }
+            }
+        }
+
+        describe("PUT /api/v1/host/meeting/memo") {
+            it("주최자 메모 저장 결과를 반환한다") {
+                val request = SaveMeetingMemoRequest(
+                    meetingId = MeetingId("memo-meeting"),
+                    memo = "자동 저장 메모",
+                )
+                every {
+                    meetingService.saveMeetingMemo(
+                        meetingId = request.meetingId,
+                        requesterUserId = authenticatedUserId,
+                        memo = request.memo,
+                    )
+                } returns true
+
+                setSecurityContext(authenticatedUserId)
+
+                val response = controller.saveMeetingMemo(
+                    request = request,
+                )
+
+                response.success shouldBe true
             }
         }
 
         describe("GET /api/v1/host/meeting/dashboard/in-progress") {
             it("주최자 진행중 모임 대시보드를 조회한다") {
                 val hostName = "이파이"
-                every { meetingService.getHostMeetingDashboard(authenticatedUser.id) } returns MeetingDashboard(
+                every { meetingService.getHostMeetingDashboard(authenticatedUserId) } returns MeetingDashboard(
                     hostName = hostName,
                     summary = MeetingDashboardSummary(
                         votingCount = 1,
@@ -184,17 +298,21 @@ class MeetingVoteControllerTest : DescribeSpec({
                             finalizedDate = null,
                             completedVoteCount = 2,
                             totalVoteCount = 4,
+                            memo = "회의실 예약 완료 예정",
                         ),
                     ),
                     confirmedMeetings = emptyList(),
                 )
 
-                val response = controller.getInProgressMeetingDashboard(authenticatedUser)
+                setSecurityContext(authenticatedUserId)
+
+                val response = controller.getInProgressMeetingDashboard()
 
                 response.hostName shouldBe hostName
                 response.summary.votingCount shouldBe 1
                 response.meetings.size shouldBe 1
                 response.meetings.first().meetingId shouldBe MeetingId("meeting-a")
+                response.meetings.first().memo shouldBe "회의실 예약 완료 예정"
             }
         }
 
@@ -202,7 +320,7 @@ class MeetingVoteControllerTest : DescribeSpec({
             it("주최자 확정 모임 대시보드를 조회한다") {
                 val hostName = "이파이"
                 val finalizedDate = LocalDate.of(2026, 2, 25)
-                every { meetingService.getHostMeetingDashboard(authenticatedUser.id) } returns MeetingDashboard(
+                every { meetingService.getHostMeetingDashboard(authenticatedUserId) } returns MeetingDashboard(
                     hostName = hostName,
                     summary = MeetingDashboardSummary(
                         votingCount = 1,
@@ -218,17 +336,21 @@ class MeetingVoteControllerTest : DescribeSpec({
                             finalizedDate = finalizedDate,
                             completedVoteCount = 3,
                             totalVoteCount = 3,
+                            memo = "회의실 예약 완료",
                         ),
                     ),
                 )
 
-                val response = controller.getConfirmedMeetingDashboard(authenticatedUser)
+                setSecurityContext(authenticatedUserId)
+
+                val response = controller.getConfirmedMeetingDashboard()
 
                 response.hostName shouldBe hostName
                 response.summary.confirmedCount shouldBe 1
                 response.meetings.size shouldBe 1
                 response.meetings.first().meetingId shouldBe MeetingId("meeting-confirmed")
                 response.meetings.first().finalizedDate shouldBe finalizedDate
+                response.meetings.first().memo shouldBe "회의실 예약 완료"
             }
         }
 
@@ -245,7 +367,7 @@ class MeetingVoteControllerTest : DescribeSpec({
                 every {
                     meetingService.updateMeeting(
                         meetingId = request.meetingId,
-                        requesterUserId = authenticatedUser.id,
+                        requesterUserId = authenticatedUserId,
                         title = request.title,
                         dates = request.dates.toSet(),
                         maxParticipantCount = request.maxParticipantCount,
@@ -260,7 +382,9 @@ class MeetingVoteControllerTest : DescribeSpec({
                     dates = request.dates.toSet(),
                 )
 
-                val response = controller.updateMeeting(authenticatedUser, request)
+                setSecurityContext(authenticatedUserId)
+
+                val response = controller.updateMeeting(request)
 
                 response.meetingId shouldBe meetingId
                 response.title shouldBe "수정된 모임"
@@ -287,4 +411,18 @@ private fun fixtureMeeting(
         status = status,
         finalizedDate = finalizedDate,
     )
+}
+
+private fun setSecurityContext(userId: UserId?) {
+    if (userId == null) {
+        SecurityContextHolder.clearContext()
+        return
+    }
+    val context = SecurityContextHolder.createEmptyContext()
+    context.authentication = TokenAuthentication("test-token", userId)
+    SecurityContextHolder.setContext(context)
+}
+
+private fun clearSecurityContext() {
+    SecurityContextHolder.clearContext()
 }
