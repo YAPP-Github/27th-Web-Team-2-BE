@@ -35,6 +35,11 @@ class MeetingAdapter(
     }
 
     @Transactional
+    override fun reassignHostUserId(fromUserId: UserId, toUserId: UserId) {
+        meetingJpaRepository.updateHostUserId(fromUserId.value, toUserId.value)
+    }
+
+    @Transactional
     override fun save(meeting: Meeting): Meeting {
         val existing = meetingJpaRepository.findByMeetIdWithParticipants(meeting.id.value)
 

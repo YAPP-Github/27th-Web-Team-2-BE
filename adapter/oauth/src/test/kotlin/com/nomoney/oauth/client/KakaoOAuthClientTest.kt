@@ -21,7 +21,6 @@ class KakaoOAuthClientTest : DescribeSpec({
     val properties = KakaoOAuthProperties(
         clientId = "test-client-id",
         clientSecret = "test-client-secret",
-        redirectUri = "https://example.com/api/v1/auth/oauth/kakao",
     )
     val objectMapper = ObjectMapper()
     val kakaoOAuthClient = KakaoOAuthClient(restTemplate, properties, objectMapper)
@@ -59,7 +58,7 @@ class KakaoOAuthClientTest : DescribeSpec({
                 } returns kakaoTokenResponse
 
                 // when
-                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode, null)
+                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode, null, "https://example.com/api/v1/auth/oauth/kakao")
 
                 // then
                 accessToken shouldBe "test-kakao-access-token"
@@ -84,7 +83,7 @@ class KakaoOAuthClientTest : DescribeSpec({
                 } returns kakaoTokenResponse
 
                 // when
-                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode, state)
+                val accessToken = kakaoOAuthClient.getAccessToken(authorizationCode, state, "https://example.com/api/v1/auth/oauth/kakao")
 
                 // then
                 accessToken shouldBe "test-kakao-access-token"
@@ -104,7 +103,7 @@ class KakaoOAuthClientTest : DescribeSpec({
 
                 // when & then
                 shouldThrow<RuntimeException> {
-                    kakaoOAuthClient.getAccessToken(authorizationCode, null)
+                    kakaoOAuthClient.getAccessToken(authorizationCode, null, "https://example.com/api/v1/auth/oauth/kakao")
                 }
             }
 
@@ -122,7 +121,7 @@ class KakaoOAuthClientTest : DescribeSpec({
 
                 // when & then
                 shouldThrow<RuntimeException> {
-                    kakaoOAuthClient.getAccessToken(authorizationCode, null)
+                    kakaoOAuthClient.getAccessToken(authorizationCode, null, "https://example.com/api/v1/auth/oauth/kakao")
                 }
             }
         }

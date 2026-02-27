@@ -1,5 +1,7 @@
 package com.nomoney.api.auth
 
+import com.nomoney.api.auth.model.GetLinkedSocialAccountsResponse
+import com.nomoney.api.auth.model.IssueLinkTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
@@ -10,6 +12,9 @@ import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
+import com.nomoney.auth.service.SocialLinkService
+import com.nomoney.auth.service.SocialLinkTokenService
+import com.nomoney.exception.InvalidRequestException
 import com.nomoney.exception.UnauthorizedException
 import com.nomoney.support.logging.logger
 import io.swagger.v3.oas.annotations.Operation
@@ -30,10 +35,16 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
     private val authService: AuthService,
     private val socialAuthService: SocialAuthService,
+    private val socialLinkService: SocialLinkService,
+    private val socialLinkTokenService: SocialLinkTokenService,
     private val anonymousAuthService: AnonymousAuthService,
     private val oauthRedirectProperties: OAuthRedirectProperties,
 ) {
     private val logger = logger()
+
+    // =========================================================
+    // 로그인
+    // =========================================================
 
     @Operation(summary = "익명 로그인", description = "익명 사용자로 로그인합니다. 매 호출마다 새로운 익명 사용자가 생성됩니다.")
     @GetMapping("/api/v1/auth/anonymous")
@@ -56,6 +67,7 @@ class AuthController(
     fun googleLogin(
         @RequestParam code: String,
         @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
         try {
@@ -63,6 +75,7 @@ class AuthController(
                 provider = SocialProvider.GOOGLE,
                 authorizationCode = code,
                 state = state,
+                redirectUri = request.requestURL.toString(),
             )
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
@@ -79,6 +92,7 @@ class AuthController(
     fun kakaoLogin(
         @RequestParam code: String,
         @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
         try {
@@ -86,6 +100,7 @@ class AuthController(
                 provider = SocialProvider.KAKAO,
                 authorizationCode = code,
                 state = state,
+                redirectUri = request.requestURL.toString(),
             )
 
             setTokenCookies(response, tokenPair.accessToken.tokenValue, tokenPair.refreshToken.tokenValue)
@@ -97,59 +112,73 @@ class AuthController(
         }
     }
 
-    private fun buildSuccessRedirectUrl(state: String?): String {
-        val redirectState = state?.let(::parseRedirectState)
-        val environmentBaseUrl = redirectState?.environmentKey
-            ?.lowercase()
-            ?.let { oauthRedirectProperties.domains[it] }
-        val redirectUrl = environmentBaseUrl
-            ?.let(::buildEnvironmentSuccessUrl)
-            ?: oauthRedirectProperties.successUrl
+    // =========================================================
+    // 소셜 계정 연동
+    // =========================================================
 
-        return appendStateQueryParam(redirectUrl, state)
+    @Operation(summary = "소셜 연동 토큰 발급", description = "소셜 계정 연동을 위한 일회성 토큰(UUID)을 발급합니다. 발급된 토큰은 10분간 유효하며 1회만 사용 가능합니다. 인증된 사용자만 호출 가능합니다.")
+    @PostMapping("/api/v1/auth/link/token")
+    fun issueLinkToken(): IssueLinkTokenResponse {
+        val userId = getSecurityUserIdOrThrow()
+        val linkToken = socialLinkTokenService.issueLinkToken(userId)
+        return IssueLinkTokenResponse(linkToken = linkToken)
     }
 
-    private fun buildEnvironmentSuccessUrl(baseUrl: String): String {
-        val callbackPath = extractSuccessPath()
-        return appendPath(baseUrl, callbackPath)
-    }
+    @Operation(summary = "구글 소셜 연동", description = "구글 OAuth 인증 코드를 사용하여 기존 계정에 구글 소셜 로그인을 연동합니다. state 파라미터에 {environmentKey}|{linkToken} 형식으로 전달해야 합니다.")
+    @GetMapping("/api/v1/auth/oauth/google/link")
+    fun googleLink(
+        @RequestParam code: String,
+        @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
+        try {
+            val linkState = parseLinkRedirectState(state)
 
-    private fun extractSuccessPath(): String {
-        return runCatching { URI(oauthRedirectProperties.successUrl).path }
-            .getOrNull()
-            ?.takeIf { it.isNotBlank() }
-            ?: DEFAULT_SUCCESS_PATH
-    }
+            val userId = socialLinkTokenService.consumeLinkToken(linkState.linkToken)
+            socialLinkService.linkSocialAccount(userId, SocialProvider.GOOGLE, code, request.requestURL.toString(), state)
 
-    private fun appendPath(baseUrl: String, path: String): String {
-        val normalizedBase = baseUrl.trimEnd('/')
-        val normalizedPath = if (path.startsWith("/")) path else "/$path"
-        return normalizedBase + normalizedPath
-    }
-
-    private fun appendStateQueryParam(url: String, state: String?): String {
-        val stateValue = state?.takeIf { it.isNotBlank() } ?: return url
-        val delimiter = if (url.contains("?")) "&" else "?"
-        return "$url$delimiter" + "state=$stateValue"
-    }
-
-    private fun parseRedirectState(stateValue: String): RedirectState? {
-        val trimmed = stateValue.trim()
-        if (trimmed.isEmpty()) {
-            return null
+            response.sendRedirect(buildSuccessRedirectUrl(state))
+        } catch (e: Exception) {
+            logger.error("구글 연동 실패", e)
+            response.sendRedirect(oauthRedirectProperties.failureUrl)
         }
-
-        val environmentKey = trimmed.substringBefore('|').trim()
-            .takeIf { it.isNotBlank() }
-            ?: return null
-
-        return RedirectState(environmentKey = environmentKey)
     }
 
-    @Operation(
-        summary = SwaggerApiOperation.Auth.REFRESH_TOKEN_WITH_COOKIE_SUMMARY,
-        description = SwaggerApiOperation.Auth.REFRESH_TOKEN_WITH_COOKIE_DESCRIPTION,
-    )
+    @Operation(summary = "카카오 소셜 연동", description = "카카오 OAuth 인증 코드를 사용하여 기존 계정에 카카오 소셜 로그인을 연동합니다. state 파라미터에 {environmentKey}|{linkToken} 형식으로 전달해야 합니다.")
+    @GetMapping("/api/v1/auth/oauth/kakao/link")
+    fun kakaoLink(
+        @RequestParam code: String,
+        @RequestParam(required = false) state: String?,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
+        try {
+            val linkState = parseLinkRedirectState(state)
+
+            val userId = socialLinkTokenService.consumeLinkToken(linkState.linkToken)
+            socialLinkService.linkSocialAccount(userId, SocialProvider.KAKAO, code, request.requestURL.toString(), state)
+
+            response.sendRedirect(buildSuccessRedirectUrl(state))
+        } catch (e: Exception) {
+            logger.error("카카오 연동 실패", e)
+            response.sendRedirect(oauthRedirectProperties.failureUrl)
+        }
+    }
+
+    @Operation(summary = "연동된 소셜 계정 목록 조회", description = "현재 로그인한 사용자에게 연동된 소셜 계정 프로바이더 목록을 반환합니다.")
+    @GetMapping("/api/v1/auth/me/social-accounts")
+    fun getLinkedSocialAccounts(): GetLinkedSocialAccountsResponse {
+        val userId = getSecurityUserIdOrThrow()
+        val providers = socialLinkService.getLinkedSocialAccounts(userId)
+        return GetLinkedSocialAccountsResponse(providers = providers.map { it.name })
+    }
+
+    // =========================================================
+    // 토큰 갱신
+    // =========================================================
+
+    @Operation(summary = "쿠키 기반 토큰 갱신", description = "HttpOnly 쿠키에 저장된 리프레시 토큰을 사용하여 액세스 토큰과 리프레시 토큰을 갱신합니다.")
     @PostMapping("/api/v1/auth/refresh-cookie")
     fun refreshTokenWithCookie(
         request: HttpServletRequest,
@@ -182,6 +211,72 @@ class AuthController(
             refreshToken = tokenPair.refreshToken.tokenValue,
             refreshTokenExpiresAt = tokenPair.refreshToken.expiresAt,
         )
+    }
+
+    // =========================================================
+    // Private helpers
+    // =========================================================
+
+    private fun buildSuccessRedirectUrl(state: String?): String {
+        return buildRedirectUrl(state, oauthRedirectProperties.successUrl)
+    }
+
+    private fun buildRedirectUrl(state: String?, configuredUrl: String): String {
+        val redirectState = state?.let(::parseRedirectState)
+        val environmentBaseUrl = redirectState?.environmentKey
+            ?.lowercase()
+            ?.let { oauthRedirectProperties.domains[it] }
+        val redirectUrl = environmentBaseUrl
+            ?.let { appendPath(it, extractPath(configuredUrl)) }
+            ?: configuredUrl
+
+        return appendStateQueryParam(redirectUrl, state)
+    }
+
+    private fun extractPath(url: String): String {
+        return runCatching { URI(url).path }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_SUCCESS_PATH
+    }
+
+    private fun appendPath(baseUrl: String, path: String): String {
+        val normalizedBase = baseUrl.trimEnd('/')
+        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+        return normalizedBase + normalizedPath
+    }
+
+    private fun appendStateQueryParam(url: String, state: String?): String {
+        val stateValue = state?.takeIf { it.isNotBlank() } ?: return url
+        val delimiter = if (url.contains("?")) "&" else "?"
+        return "$url$delimiter" + "state=$stateValue"
+    }
+
+    private fun parseRedirectState(stateValue: String): RedirectState? {
+        val trimmed = stateValue.trim()
+        if (trimmed.isEmpty()) {
+            return null
+        }
+
+        val environmentKey = trimmed.substringBefore('|').trim()
+            .takeIf { it.isNotBlank() }
+            ?: return null
+
+        return RedirectState(environmentKey = environmentKey)
+    }
+
+    private fun parseLinkRedirectState(state: String?): LinkRedirectState {
+        val trimmed = state?.trim()
+        if (trimmed.isNullOrEmpty()) {
+            throw InvalidRequestException("연동 요청에 state가 필요합니다.", "state: null")
+        }
+
+        val parts = trimmed.split('|', limit = 2)
+        val environmentKey = parts[0].trim().takeIf { it.isNotBlank() }
+        val linkToken = parts.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+            ?: throw InvalidRequestException("state에 연동 토큰이 누락되었습니다.", "state: $trimmed")
+
+        return LinkRedirectState(environmentKey = environmentKey, linkToken = linkToken)
     }
 
     private fun extractRefreshTokenFromCookie(request: HttpServletRequest): String {
@@ -230,5 +325,10 @@ class AuthController(
 
     private data class RedirectState(
         val environmentKey: String,
+    )
+
+    private data class LinkRedirectState(
+        val environmentKey: String?,
+        val linkToken: String,
     )
 }
