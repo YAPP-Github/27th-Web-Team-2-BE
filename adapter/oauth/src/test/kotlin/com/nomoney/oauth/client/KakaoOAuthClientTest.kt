@@ -46,13 +46,16 @@ class KakaoOAuthClientTest : DescribeSpec({
                 val kakaoTokenResponse = KakaoTokenResponse(
                     accessToken = "test-kakao-access-token",
                     expiresIn = 21599,
+                    refreshToken = null,
+                    refreshTokenExpiresIn = null,
+                    scope = null,
                     tokenType = "bearer",
                 )
 
                 every {
                     restTemplate.postForObject(
                         "https://kauth.kakao.com/oauth/token",
-                        any<HttpEntity<*>>(),
+                        any<Map<String, String>>(),
                         KakaoTokenResponse::class.java,
                     )
                 } returns kakaoTokenResponse
@@ -71,13 +74,16 @@ class KakaoOAuthClientTest : DescribeSpec({
                 val kakaoTokenResponse = KakaoTokenResponse(
                     accessToken = "test-kakao-access-token",
                     expiresIn = 21599,
+                    refreshToken = null,
+                    refreshTokenExpiresIn = null,
+                    scope = null,
                     tokenType = "bearer",
                 )
 
                 every {
                     restTemplate.postForObject(
                         "https://kauth.kakao.com/oauth/token",
-                        any<HttpEntity<*>>(),
+                        any<Map<String, String>>(),
                         KakaoTokenResponse::class.java,
                     )
                 } returns kakaoTokenResponse
@@ -96,7 +102,7 @@ class KakaoOAuthClientTest : DescribeSpec({
                 every {
                     restTemplate.postForObject(
                         "https://kauth.kakao.com/oauth/token",
-                        any<HttpEntity<*>>(),
+                        any<Map<String, String>>(),
                         KakaoTokenResponse::class.java,
                     )
                 } throws RuntimeException("카카오 API 오류")
@@ -114,7 +120,7 @@ class KakaoOAuthClientTest : DescribeSpec({
                 every {
                     restTemplate.postForObject(
                         "https://kauth.kakao.com/oauth/token",
-                        any<HttpEntity<*>>(),
+                        any<Map<String, String>>(),
                         KakaoTokenResponse::class.java,
                     )
                 } returns null
