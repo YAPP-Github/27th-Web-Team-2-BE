@@ -2,11 +2,16 @@ package com.nomoney.api.auth
 
 import com.nomoney.api.auth.model.GetLinkedSocialAccountsResponse
 import com.nomoney.api.auth.model.IssueLinkTokenResponse
+import com.nomoney.api.auth.model.IssueTokenRequest
+import com.nomoney.api.auth.model.IssueTokenResponse
 import com.nomoney.api.auth.model.RefreshTokenCookieResponse
 import com.nomoney.api.auth.model.RefreshTokenRequest
 import com.nomoney.api.auth.model.RefreshTokenResponse
 import com.nomoney.api.config.OAuthRedirectProperties
+import com.nomoney.api.swagger.SwaggerApiOperation
+import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.auth.domain.SocialProvider
+import com.nomoney.auth.domain.UserId
 import com.nomoney.auth.service.AnonymousAuthService
 import com.nomoney.auth.service.AuthService
 import com.nomoney.auth.service.SocialAuthService
@@ -28,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
-@Tag(name = "인증", description = "인증 관련 API")
+@Tag(name = SwaggerApiTag.AUTH, description = SwaggerApiTag.AUTH_DESCRIPTION)
 @RestController
 class AuthController(
     private val authService: AuthService,
@@ -57,7 +62,10 @@ class AuthController(
         response.sendRedirect(buildSuccessRedirectUrl(state))
     }
 
-    @Operation(summary = "구글 소셜 로그인", description = "구글 OAuth 인증 코드를 사용하여 로그인합니다. 액세스 토큰과 리프레시 토큰을 HttpOnly 쿠키로 설정하고 프론트엔드 URL로 리다이렉트합니다. state 값이 있으면 리다이렉트 URL에 포함됩니다.")
+    @Operation(
+        summary = SwaggerApiOperation.Auth.GOOGLE_SOCIAL_LOGIN_SUMMARY,
+        description = SwaggerApiOperation.Auth.GOOGLE_SOCIAL_LOGIN_DESCRIPTION,
+    )
     @GetMapping("/api/v1/auth/oauth/google")
     fun googleLogin(
         @RequestParam code: String,
@@ -188,7 +196,10 @@ class AuthController(
         return RefreshTokenCookieResponse()
     }
 
-    @Operation(summary = "토큰 갱신", description = "리프레시 토큰을 사용하여 새로운 액세스 토큰과 리프레시 토큰을 발급합니다")
+    @Operation(
+        summary = SwaggerApiOperation.Auth.REFRESH_TOKEN_SUMMARY,
+        description = SwaggerApiOperation.Auth.REFRESH_TOKEN_DESCRIPTION,
+    )
     @PostMapping("/api/v1/auth/refresh")
     fun refreshToken(
         @RequestBody request: RefreshTokenRequest,
@@ -290,17 +301,15 @@ class AuthController(
         accessTokenValue: String,
         refreshTokenValue: String,
     ) {
-        // HttpOnly 쿠키로 액세스 토큰 설정
         val accessTokenCookie = Cookie(ACCESS_TOKEN_COOKIE_NAME, accessTokenValue).apply {
             isHttpOnly = true
-            secure = true // HTTPS에서만 전송
+            secure = true
             path = "/"
             maxAge = Duration.ofDays(30).seconds.toInt()
             setAttribute("SameSite", "NONE")
         }
         response.addCookie(accessTokenCookie)
 
-        // HttpOnly 쿠키로 리프레시 토큰 설정
         val refreshTokenCookie = Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshTokenValue).apply {
             isHttpOnly = true
             secure = true
