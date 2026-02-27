@@ -5,8 +5,6 @@ import com.nomoney.calendar.domain.KakaoCalendarEvent
 import com.nomoney.calendar.domain.KakaoCalendarEventCreateCommand
 import com.nomoney.calendar.port.KakaoCalendarRepository
 import com.nomoney.oauth.dto.KakaoCreateCalendarEventResponse
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -45,16 +43,14 @@ class KakaoCalendarApiClient(
     }
 
     private fun buildEvent(command: KakaoCalendarEventCreateCommand): Map<String, Any?> {
-        val zoneId = ZoneId.of("Asia/Seoul")
-
         return mapOf(
             "title" to command.title,
             "description" to command.description,
             "location" to command.location,
             "time" to mapOf(
                 "all_day" to true,
-                "start_at" to command.startDate.atStartOfDay(zoneId).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-                "end_at" to command.endDate.plusDays(1).atStartOfDay(zoneId).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                "start_at" to "${command.startDate}T00:00:00Z",
+                "end_at" to "${command.endDate.plusDays(1)}T00:00:00Z",
             ),
         )
     }
