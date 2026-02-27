@@ -46,6 +46,9 @@ class KakaoOAuthClientTest : DescribeSpec({
                 val kakaoTokenResponse = KakaoTokenResponse(
                     accessToken = "test-kakao-access-token",
                     expiresIn = 21599,
+                    refreshToken = null,
+                    refreshTokenExpiresIn = null,
+                    scope = null,
                     tokenType = "bearer",
                 )
 
@@ -71,6 +74,9 @@ class KakaoOAuthClientTest : DescribeSpec({
                 val kakaoTokenResponse = KakaoTokenResponse(
                     accessToken = "test-kakao-access-token",
                     expiresIn = 21599,
+                    refreshToken = null,
+                    refreshTokenExpiresIn = null,
+                    scope = null,
                     tokenType = "bearer",
                 )
 

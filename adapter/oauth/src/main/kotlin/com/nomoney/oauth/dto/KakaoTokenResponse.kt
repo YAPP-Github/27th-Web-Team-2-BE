@@ -7,7 +7,16 @@ data class KakaoTokenResponse(
     val accessToken: String,
 
     @JsonProperty("expires_in")
-    val expiresIn: Int,
+    val expiresIn: Long,
+
+    @JsonProperty("refresh_token")
+    val refreshToken: String?,
+
+    @JsonProperty("refresh_token_expires_in")
+    val refreshTokenExpiresIn: Long?,
+
+    @JsonProperty("scope")
+    val scope: String?,
 
     @JsonProperty("token_type")
     val tokenType: String,

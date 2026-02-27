@@ -1,13 +1,19 @@
 package com.nomoney.auth.service
 
+import com.nomoney.auth.domain.KakaoOAuthToken
+import com.nomoney.auth.domain.SocialOAuthToken
+import com.nomoney.auth.domain.SocialOAuthTokenId
 import com.nomoney.auth.domain.SocialProvider
 import com.nomoney.auth.domain.SocialUserInfo
 import com.nomoney.auth.domain.TokenPair
 import com.nomoney.auth.domain.UserId
+import com.nomoney.auth.port.KakaoOAuthRepository
 import com.nomoney.auth.port.SocialLoginRepository
+import com.nomoney.auth.port.SocialOAuthTokenRepository
 import com.nomoney.auth.port.UserRepository
 import com.nomoney.exception.NoMoneyException
 import com.nomoney.exception.SocialAuthException
+import java.time.LocalDateTime
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -15,18 +21,17 @@ import org.springframework.transaction.annotation.Transactional
 class SocialAuthService(
     private val userRepository: UserRepository,
     private val socialLoginRepository: SocialLoginRepository,
+    private val socialOAuthTokenRepository: SocialOAuthTokenRepository,
+    private val kakaoOAuthRepository: KakaoOAuthRepository,
     private val authService: AuthService,
     private val socialOAuthClientRegistry: SocialOAuthClientRegistry,
 ) {
     fun loginWithSocialProvider(provider: SocialProvider, authorizationCode: String, state: String?, redirectUri: String): TokenPair {
         return try {
-            val oauthClient = socialOAuthClientRegistry.getClient(provider)
-            val accessToken = oauthClient.getAccessToken(authorizationCode, state, redirectUri)
-            val socialUserInfo = oauthClient.getUserInfo(accessToken)
-
-            val userId = getOrCreateUser(socialUserInfo)
-
-            authService.issueTokenPair(userId)
+            when (provider) {
+                SocialProvider.KAKAO -> loginWithKakao(authorizationCode, state, redirectUri)
+                else -> loginWithDefaultProvider(provider, authorizationCode, state, redirectUri)
+            }
         } catch (e: NoMoneyException) {
             throw e
         } catch (e: Exception) {
@@ -58,5 +63,52 @@ class SocialAuthService(
         )
 
         return userId
+    }
+
+    private fun loginWithDefaultProvider(
+        provider: SocialProvider,
+        authorizationCode: String,
+        state: String?,
+        redirectUri: String,
+    ): TokenPair {
+        val oauthClient = socialOAuthClientRegistry.getClient(provider)
+        val accessToken = oauthClient.getAccessToken(authorizationCode, state, redirectUri)
+        val socialUserInfo = oauthClient.getUserInfo(accessToken)
+        val userId = getOrCreateUser(socialUserInfo)
+
+        return authService.issueTokenPair(userId)
+    }
+
+    private fun loginWithKakao(
+        authorizationCode: String,
+        state: String?,
+        redirectUri: String,
+    ): TokenPair {
+        val kakaoToken = kakaoOAuthRepository.getOAuthToken(authorizationCode, state, redirectUri)
+        val oauthClient = socialOAuthClientRegistry.getClient(SocialProvider.KAKAO)
+        val socialUserInfo = oauthClient.getUserInfo(kakaoToken.accessToken)
+        val userId = getOrCreateUser(socialUserInfo)
+
+        saveKakaoOAuthToken(userId, kakaoToken)
+
+        return authService.issueTokenPair(userId)
+    }
+
+    private fun saveKakaoOAuthToken(userId: UserId, kakaoToken: KakaoOAuthToken) {
+        val existingToken = socialOAuthTokenRepository.findByUserIdAndProvider(userId, SocialProvider.KAKAO)
+
+        val token = SocialOAuthToken(
+            id = existingToken?.id ?: SocialOAuthTokenId(0L),
+            userId = userId,
+            provider = SocialProvider.KAKAO,
+            accessToken = kakaoToken.accessToken,
+            refreshToken = kakaoToken.refreshToken ?: existingToken?.refreshToken,
+            accessTokenExpiresAt = kakaoToken.accessTokenExpiresAt,
+            refreshTokenExpiresAt = kakaoToken.refreshTokenExpiresAt ?: existingToken?.refreshTokenExpiresAt,
+            scope = kakaoToken.scope ?: existingToken?.scope,
+            createdAt = existingToken?.createdAt ?: LocalDateTime.now(),
+        )
+
+        socialOAuthTokenRepository.upsert(token)
     }
 }
