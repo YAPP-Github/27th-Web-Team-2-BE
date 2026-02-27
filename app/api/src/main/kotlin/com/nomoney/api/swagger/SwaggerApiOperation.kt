@@ -16,6 +16,8 @@ object SwaggerApiOperation {
     object MeetingVote {
         const val GET_MEETING_INFO_SUMMARY = "모임 정보 조회"
         const val GET_MEETING_INFO_DESCRIPTION = "모임 ID로 모임 정보와 참여자들의 투표 현황을 조회합니다"
+        const val GET_HOST_MEETING_DETAIL_SUMMARY = "주최자용 모임 상세 조회"
+        const val GET_HOST_MEETING_DETAIL_DESCRIPTION = "토큰 사용자 검증 후 주최자 본인 모임 상세를 조회합니다. 미투표 인원 수와 메모를 함께 반환합니다."
         const val GET_MEETING_LIST_SUMMARY = "모임 목록 조회"
         const val GET_MEETING_LIST_DESCRIPTION = "모든 모임의 ID, 제목, 주최자를 조회합니다"
         const val GET_IN_PROGRESS_DASHBOARD_SUMMARY = "주최자 진행중 모임 대시보드 조회"
@@ -26,6 +28,8 @@ object SwaggerApiOperation {
         const val GET_FINALIZE_PREVIEW_DESCRIPTION = "모임 확정 시 필요한 최다 득표 날짜 후보(날짜/득표수/투표자)를 조회합니다."
         const val CREATE_MEETING_SUMMARY = "모임 생성"
         const val CREATE_MEETING_DESCRIPTION = "새로운 모임을 생성하고 고유 ID를 발급합니다"
+        const val SAVE_MEETING_MEMO_SUMMARY = "주최자 메모 저장"
+        const val SAVE_MEETING_MEMO_DESCRIPTION = "주최자가 모임 메모를 저장합니다. 메모는 200자까지 가능합니다."
         const val UPDATE_MEETING_SUMMARY = "모임 수정"
         const val UPDATE_MEETING_DESCRIPTION = "모임 제목, 최대 인원, 후보 날짜, 삭제할 참여자를 반영해 모임을 수정합니다."
         const val CHECK_DUPLICATE_NAME_SUMMARY = "참여자 이름 중복 확인"

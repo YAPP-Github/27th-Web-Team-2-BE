@@ -61,6 +61,9 @@ data class MeetingDashboardCardResponse(
 
     @Schema(description = "전체 투표 대상 인원 수", example = "6")
     val totalVoteCount: Int,
+
+    @Schema(description = "주최자 메모", example = "회의실 예약 완료", nullable = true)
+    val memo: String?,
 )
 
 fun MeetingDashboard.toInProgressResponse(): InProgressMeetingDashboardResponse = InProgressMeetingDashboardResponse(
@@ -88,4 +91,5 @@ private fun MeetingDashboardCard.toResponse(): MeetingDashboardCardResponse = Me
     finalizedDate = this.finalizedDate,
     completedVoteCount = this.completedVoteCount,
     totalVoteCount = this.totalVoteCount,
+    memo = this.memo,
 )

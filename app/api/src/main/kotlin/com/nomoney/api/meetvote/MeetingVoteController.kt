@@ -1,5 +1,7 @@
 package com.nomoney.api.meetvote
 
+import com.nomoney.api.auth.getSecurityUserId
+import com.nomoney.api.auth.getSecurityUserIdOrThrow
 import com.nomoney.api.meetvote.model.ConfirmedMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.CreateMeetingRequest
 import com.nomoney.api.meetvote.model.CreateMeetingResponse
@@ -8,23 +10,26 @@ import com.nomoney.api.meetvote.model.FinalizeMeetingConflictCheckResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingPreviewResponse
 import com.nomoney.api.meetvote.model.FinalizeMeetingRequest
 import com.nomoney.api.meetvote.model.FinalizeMeetingResponse
+import com.nomoney.api.meetvote.model.HostMeetingDetailResponse
 import com.nomoney.api.meetvote.model.InProgressMeetingDashboardResponse
 import com.nomoney.api.meetvote.model.IsExistNameResponse
 import com.nomoney.api.meetvote.model.MeetingInfoResponse
 import com.nomoney.api.meetvote.model.MeetingSummaryResponse
+import com.nomoney.api.meetvote.model.SaveMeetingMemoRequest
+import com.nomoney.api.meetvote.model.SaveMeetingMemoResponse
 import com.nomoney.api.meetvote.model.UpdateMeetingRequest
 import com.nomoney.api.meetvote.model.UpdateMeetingResponse
 import com.nomoney.api.meetvote.model.VoteRequest
 import com.nomoney.api.meetvote.model.VoteResponse
 import com.nomoney.api.meetvote.model.toConfirmedResponse
 import com.nomoney.api.meetvote.model.toFinalizePreviewResponse
+import com.nomoney.api.meetvote.model.toHostDetailResponse
 import com.nomoney.api.meetvote.model.toInProgressResponse
 import com.nomoney.api.meetvote.model.toResponse
 import com.nomoney.api.meetvote.model.toSummaryResponse
 import com.nomoney.api.meetvote.model.toUpdateResponse
 import com.nomoney.api.swagger.SwaggerApiOperation
 import com.nomoney.api.swagger.SwaggerApiTag
-import com.nomoney.auth.domain.User
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.service.MeetingService
@@ -58,6 +63,24 @@ class MeetingVoteController(
     }
 
     @Operation(
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.GET_HOST_MEETING_DETAIL_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.GET_HOST_MEETING_DETAIL_DESCRIPTION,
+    )
+    @GetMapping("/api/v1/host/meeting")
+    fun getHostMeetingInfo(
+        @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
+        @RequestParam
+        meetId: String,
+    ): HostMeetingDetailResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getHostMeetingDetail(
+            meetingId = MeetingId(meetId),
+            requesterUserId = requesterUserId,
+        ).toHostDetailResponse()
+    }
+
+    @Operation(
         tags = [SwaggerApiTag.MEETING_QUERY_CREATE],
         summary = SwaggerApiOperation.MeetingVote.GET_MEETING_LIST_SUMMARY,
         description = SwaggerApiOperation.MeetingVote.GET_MEETING_LIST_DESCRIPTION,
@@ -74,10 +97,9 @@ class MeetingVoteController(
         description = SwaggerApiOperation.MeetingVote.GET_IN_PROGRESS_DASHBOARD_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/dashboard/in-progress")
-    fun getInProgressMeetingDashboard(
-        user: User,
-    ): InProgressMeetingDashboardResponse {
-        return meetingService.getHostMeetingDashboard(user.id).toInProgressResponse()
+    fun getInProgressMeetingDashboard(): InProgressMeetingDashboardResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getHostMeetingDashboard(requesterUserId).toInProgressResponse()
     }
 
     @Operation(
@@ -86,10 +108,9 @@ class MeetingVoteController(
         description = SwaggerApiOperation.MeetingVote.GET_CONFIRMED_DASHBOARD_DESCRIPTION,
     )
     @GetMapping("/api/v1/host/meeting/dashboard/confirmed")
-    fun getConfirmedMeetingDashboard(
-        user: User,
-    ): ConfirmedMeetingDashboardResponse {
-        return meetingService.getHostMeetingDashboard(user.id).toConfirmedResponse()
+    fun getConfirmedMeetingDashboard(): ConfirmedMeetingDashboardResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getHostMeetingDashboard(requesterUserId).toConfirmedResponse()
     }
 
     @Operation(
@@ -99,12 +120,12 @@ class MeetingVoteController(
     )
     @GetMapping("/api/v1/host/meeting/finalize/preview")
     fun getFinalizeMeetingPreview(
-        user: User,
         @Parameter(description = "모임 고유 ID", required = true, example = "aBcDeFgHiJ")
         @RequestParam
         meetId: String,
     ): FinalizeMeetingPreviewResponse {
-        return meetingService.getFinalizePreview(MeetingId(meetId), user.id).toFinalizePreviewResponse()
+        val requesterUserId = getSecurityUserIdOrThrow()
+        return meetingService.getFinalizePreview(MeetingId(meetId), requesterUserId).toFinalizePreviewResponse()
     }
 
     @Operation(
@@ -114,13 +135,13 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/meeting")
     fun createMeeting(
-        user: User,
         @RequestBody request: CreateMeetingRequest,
     ): CreateMeetingResponse {
+        val hostUserId = getSecurityUserId()
         val meeting = meetingService.createMeeting(
             title = request.title,
             hostName = request.hostName,
-            hostUserId = user.id,
+            hostUserId = hostUserId,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
         )
@@ -138,17 +159,35 @@ class MeetingVoteController(
 
     @Operation(
         tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
+        summary = SwaggerApiOperation.MeetingVote.SAVE_MEETING_MEMO_SUMMARY,
+        description = SwaggerApiOperation.MeetingVote.SAVE_MEETING_MEMO_DESCRIPTION,
+    )
+    @PutMapping("/api/v1/host/meeting/memo")
+    fun saveMeetingMemo(
+        @RequestBody request: SaveMeetingMemoRequest,
+    ): SaveMeetingMemoResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
+        val success = meetingService.saveMeetingMemo(
+            meetingId = request.meetingId,
+            requesterUserId = requesterUserId,
+            memo = request.memo,
+        )
+        return SaveMeetingMemoResponse(success = success)
+    }
+
+    @Operation(
+        tags = [SwaggerApiTag.HOST_MEETING_MANAGEMENT],
         summary = SwaggerApiOperation.MeetingVote.UPDATE_MEETING_SUMMARY,
         description = SwaggerApiOperation.MeetingVote.UPDATE_MEETING_DESCRIPTION,
     )
     @PutMapping("/api/v1/host/meeting")
     fun updateMeeting(
-        user: User,
         @RequestBody request: UpdateMeetingRequest,
     ): UpdateMeetingResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val meeting = meetingService.updateMeeting(
             meetingId = request.meetingId,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
             title = request.title,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
@@ -218,13 +257,13 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/host/meeting/finalize")
     fun finalizeMeeting(
-        user: User,
         @RequestBody request: FinalizeMeetingRequest,
     ): FinalizeMeetingResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val meeting = meetingService.finalizeMeeting(
             meetingId = request.meetingId,
             selectedDate = request.finalizedDate,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
         )
         return FinalizeMeetingResponse(
             status = meeting.status,
@@ -241,13 +280,13 @@ class MeetingVoteController(
     )
     @PostMapping("/api/v1/host/meeting/finalize/check")
     fun checkFinalizedDateConflictAndFinalize(
-        user: User,
         @RequestBody request: FinalizeMeetingConflictCheckRequest,
     ): FinalizeMeetingConflictCheckResponse {
+        val requesterUserId = getSecurityUserIdOrThrow()
         val isConflict = meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
             meetingId = request.meetingId,
             finalizedDate = request.finalizedDate,
-            requesterUserId = user.id,
+            requesterUserId = requesterUserId,
         )
         return FinalizeMeetingConflictCheckResponse(isConflict = isConflict)
     }
