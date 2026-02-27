@@ -14,7 +14,9 @@ import java.time.LocalDateTime
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
+import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 
 @Component
@@ -74,8 +76,17 @@ class KakaoOAuthClient(
         request: Map<String, String>,
         errorMessage: String,
     ): KakaoTokenResponse {
+        val headers = HttpHeaders().apply {
+            contentType = MediaType.APPLICATION_FORM_URLENCODED
+        }
+        val body = LinkedMultiValueMap<String, String>().apply {
+            request.forEach { (key, value) ->
+                add(key, value)
+            }
+        }
+
         return try {
-            restTemplate.postForObject(TOKEN_URL, request, KakaoTokenResponse::class.java)
+            restTemplate.postForObject(TOKEN_URL, HttpEntity(body, headers), KakaoTokenResponse::class.java)
         } catch (e: Exception) {
             throw RuntimeException("$errorMessage: ${e.message}", e)
         }
