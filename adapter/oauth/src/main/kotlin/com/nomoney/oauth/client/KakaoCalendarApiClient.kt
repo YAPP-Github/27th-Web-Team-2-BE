@@ -42,17 +42,26 @@ class KakaoCalendarApiClient(
         return KakaoCalendarEvent(eventId = response.eventId)
     }
 
-    private fun buildEvent(command: KakaoCalendarEventCreateCommand): Map<String, Any?> {
-        return mapOf(
+    private fun buildEvent(command: KakaoCalendarEventCreateCommand): Map<String, Any> {
+        val event = linkedMapOf<String, Any>(
             "title" to command.title,
-            "description" to command.description,
-            "location" to command.location,
             "time" to mapOf(
                 "all_day" to true,
                 "start_at" to "${command.startDate}T00:00:00Z",
                 "end_at" to "${command.endDate.plusDays(1)}T00:00:00Z",
             ),
         )
+
+        val description = command.description
+        if (!description.isNullOrBlank()) {
+            event["description"] = description
+        }
+        val location = command.location
+        if (!location.isNullOrBlank()) {
+            event["location"] = location
+        }
+
+        return event
     }
 
     companion object {
