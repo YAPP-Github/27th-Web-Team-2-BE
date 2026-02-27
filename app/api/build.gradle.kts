@@ -20,6 +20,8 @@ dependencies {
 
     implementation(platform("io.awspring.cloud:spring-cloud-aws-dependencies:2.4.0"))
     implementation("io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config")
+
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:8.28.0")
 }
 
 tasks {
