@@ -8,6 +8,7 @@ import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
+import com.nomoney.meeting.domain.MeetingSummary
 import com.nomoney.meeting.domain.Participant
 import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
@@ -86,8 +87,8 @@ class MeetingService(
         return meeting.copy(participants = sortedParticipants)
     }
 
-    fun getAllMeetings(): List<Meeting> {
-        return meetingRepository.findAll()
+    fun getAllMeetingSummaries(): List<MeetingSummary> {
+        return meetingRepository.findAllMeetingSummaries()
     }
 
     fun getHostMeetingDetail(
@@ -159,8 +160,7 @@ class MeetingService(
     fun getHostMeetingDashboard(
         hostUserId: UserId,
     ): MeetingDashboard {
-        val meetings = meetingRepository.findAll()
-            .filter { it.hostUserId == hostUserId }
+        val meetings = meetingRepository.findAllByHostUserId(hostUserId)
 
         val dashboardCards = meetings.map { meeting ->
             val topDateVoteDetails = topDateVoteDetails(meeting)
@@ -545,12 +545,11 @@ class MeetingService(
         meetingId: MeetingId,
         finalizedDate: LocalDate,
     ): Boolean {
-        return meetingRepository.findAll().any { savedMeeting ->
-            savedMeeting.hostUserId == requesterUserId &&
-                savedMeeting.status == MeetingStatus.CONFIRMED &&
-                savedMeeting.id != meetingId &&
-                savedMeeting.finalizedDate == finalizedDate
-        }
+        return meetingRepository.existsConfirmedMeetingByHostUserIdAndFinalizedDate(
+            hostUserId = requesterUserId,
+            meetingIdToExclude = meetingId,
+            finalizedDate = finalizedDate,
+        )
     }
 
     private fun topDateVoteDetails(meeting: Meeting): List<MeetingDateVoteDetail> {

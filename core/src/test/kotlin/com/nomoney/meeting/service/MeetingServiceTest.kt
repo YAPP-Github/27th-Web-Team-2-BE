@@ -275,12 +275,13 @@ class MeetingServiceTest : DescribeSpec({
                     status = MeetingStatus.VOTING,
                     dates = setOf(finalizedDate),
                 )
-                val otherConfirmedMeeting = fixtureMeeting(
-                    id = MeetingId("confirmed-meeting"),
-                    status = MeetingStatus.CONFIRMED,
-                    finalizedDate = finalizedDate,
-                )
-                every { meetingRepository.findAll() } returns listOf(meetingToFinalize, otherConfirmedMeeting)
+                every {
+                    meetingRepository.existsConfirmedMeetingByHostUserIdAndFinalizedDate(
+                        hostUserId = UserId(1L),
+                        meetingIdToExclude = meetingToFinalize.id,
+                        finalizedDate = finalizedDate,
+                    )
+                } returns true
 
                 val result = meetingService.checkFinalizedDateConflictAndFinalizeMeeting(
                     meetingId = meetingToFinalize.id,
@@ -300,12 +301,13 @@ class MeetingServiceTest : DescribeSpec({
                     status = MeetingStatus.VOTING,
                     dates = setOf(finalizedDate),
                 )
-                val otherConfirmedMeeting = fixtureMeeting(
-                    id = MeetingId("confirmed-meeting"),
-                    status = MeetingStatus.CONFIRMED,
-                    finalizedDate = LocalDate.of(2026, 2, 21),
-                )
-                every { meetingRepository.findAll() } returns listOf(meetingToFinalize, otherConfirmedMeeting)
+                every {
+                    meetingRepository.existsConfirmedMeetingByHostUserIdAndFinalizedDate(
+                        hostUserId = UserId(1L),
+                        meetingIdToExclude = meetingToFinalize.id,
+                        finalizedDate = finalizedDate,
+                    )
+                } returns false
                 every { meetingRepository.findByMeetingId(meetingToFinalize.id) } returns meetingToFinalize
                 every { meetingRepository.save(any()) } answers { firstArg() }
 
@@ -420,16 +422,10 @@ class MeetingServiceTest : DescribeSpec({
                     ),
                 ).copy(hostName = hostName)
 
-                val othersMeeting = fixtureMeeting(id = MeetingId("other-host-meeting")).copy(
-                    hostName = "다른주최자",
-                    hostUserId = UserId(2L),
-                )
-
-                every { meetingRepository.findAll() } returns listOf(
+                every { meetingRepository.findAllByHostUserId(UserId(1L)) } returns listOf(
                     votingMeeting,
                     closedMeeting,
                     confirmedMeeting,
-                    othersMeeting,
                 )
 
                 val dashboard = meetingService.getHostMeetingDashboard(hostUserId = UserId(1L))

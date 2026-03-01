@@ -3,6 +3,7 @@ package com.nomoney.api.meetvote.model
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
+import com.nomoney.meeting.domain.MeetingSummary
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
@@ -25,6 +26,14 @@ data class MeetingSummaryResponse(
 )
 
 fun Meeting.toSummaryResponse(): MeetingSummaryResponse = MeetingSummaryResponse(
+    id = this.id,
+    title = this.title,
+    hostName = this.hostName,
+    status = this.status,
+    finalizedDate = this.finalizedDate,
+)
+
+fun MeetingSummary.toSummaryResponse(): MeetingSummaryResponse = MeetingSummaryResponse(
     id = this.id,
     title = this.title,
     hostName = this.hostName,

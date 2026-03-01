@@ -3,6 +3,8 @@ package com.nomoney.meeting.adapter
 import com.nomoney.auth.domain.UserId
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
+import com.nomoney.meeting.domain.MeetingStatus
+import com.nomoney.meeting.domain.MeetingSummary
 import com.nomoney.meeting.domain.Participant
 import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.entity.MeetingDateJpaEntity
@@ -11,6 +13,7 @@ import com.nomoney.meeting.entity.ParticipantJpaEntity
 import com.nomoney.meeting.entity.ParticipantVoteDateJpaEntity
 import com.nomoney.meeting.port.MeetingRepository
 import com.nomoney.meeting.repository.MeetingJpaRepository
+import com.nomoney.meeting.repository.MeetingSummaryProjection
 import java.time.LocalDate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -32,6 +35,32 @@ class MeetingAdapter(
     override fun findAll(): List<Meeting> {
         return meetingJpaRepository.findAll()
             .map { it.toDomain() }
+    }
+
+    @Transactional(readOnly = true)
+    override fun findAllByHostUserId(hostUserId: UserId): List<Meeting> {
+        return meetingJpaRepository.findAllByHostUserIdWithParticipants(hostUserId.value)
+            .map { it.toDomain() }
+    }
+
+    @Transactional(readOnly = true)
+    override fun findAllMeetingSummaries(): List<MeetingSummary> {
+        return meetingJpaRepository.findAllMeetingSummaries()
+            .map { it.toDomain() }
+    }
+
+    @Transactional(readOnly = true)
+    override fun existsConfirmedMeetingByHostUserIdAndFinalizedDate(
+        hostUserId: UserId,
+        meetingIdToExclude: MeetingId,
+        finalizedDate: LocalDate,
+    ): Boolean {
+        return meetingJpaRepository.existsByHostUserIdAndStatusAndMeetIdNotAndFinalizedDate(
+            hostUserId = hostUserId.value,
+            status = MeetingStatus.CONFIRMED,
+            meetId = meetingIdToExclude.value,
+            finalizedDate = finalizedDate,
+        )
     }
 
     @Transactional
@@ -75,6 +104,16 @@ class MeetingAdapter(
             voteDates = this.voteDates.map { it.voteDate }.toSet(),
             hasVoted = this.hasVoted,
             updatedAt = this.updatedAt,
+        )
+    }
+
+    private fun MeetingSummaryProjection.toDomain(): MeetingSummary {
+        return MeetingSummary(
+            id = MeetingId(this.meetId),
+            title = this.title,
+            hostName = this.hostName,
+            status = this.status,
+            finalizedDate = this.finalizedDate,
         )
     }
 
