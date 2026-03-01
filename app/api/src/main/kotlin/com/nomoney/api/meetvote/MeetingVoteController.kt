@@ -146,13 +146,15 @@ class MeetingVoteController(
             maxParticipantCount = request.maxParticipantCount,
         )
 
-        // 주최자를 빈 투표 날짜로 participant에 추가
-        meetingService.addParticipant(
-            meetingId = meeting.id,
-            name = request.hostName,
-            voteDates = emptySet(),
-            hasVoted = false,
-        )
+        if (hostUserId == null) {
+            // 비로그인 서비스는 기존 규격 유지를 위해 주최자를 참여자에 포함한다.
+            meetingService.addParticipant(
+                meetingId = meeting.id,
+                name = request.hostName,
+                voteDates = emptySet(),
+                hasVoted = false,
+            )
+        }
 
         return CreateMeetingResponse(id = meeting.id)
     }
