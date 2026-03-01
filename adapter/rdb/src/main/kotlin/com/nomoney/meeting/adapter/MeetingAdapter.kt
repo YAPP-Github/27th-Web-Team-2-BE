@@ -39,8 +39,35 @@ class MeetingAdapter(
 
     @Transactional(readOnly = true)
     override fun findAllByHostUserId(hostUserId: UserId): List<Meeting> {
-        return meetingJpaRepository.findAllByHostUserIdWithParticipants(hostUserId.value)
-            .map { it.toDomain() }
+        val meetings = meetingJpaRepository.findAllByHostUserId(hostUserId.value)
+        if (meetings.isEmpty()) {
+            return emptyList()
+        }
+
+        val meetIds = meetings.map { it.meetId }
+        val datesByMeetId = meetingJpaRepository.findAllMeetingDatesByMeetIds(meetIds)
+            .groupBy { it.meeting.meetId }
+            .mapValues { (_, entities) -> entities.map { it.availableDate }.toSet() }
+
+        val participants = meetingJpaRepository.findAllParticipantsByMeetIds(meetIds)
+        val voteDatesByParticipantId = findVoteDatesByParticipantIds(participants)
+
+        val participantsByMeetId = participants
+            .groupBy { it.meeting.meetId }
+            .mapValues { (_, entities) ->
+                entities.map { participant ->
+                    participant.toDomain(
+                        voteDates = voteDatesByParticipantId[participant.participantId].orEmpty(),
+                    )
+                }
+            }
+
+        return meetings.map { meeting ->
+            meeting.toDomain(
+                dates = datesByMeetId[meeting.meetId].orEmpty(),
+                participants = participantsByMeetId[meeting.meetId].orEmpty(),
+            )
+        }
     }
 
     @Transactional(readOnly = true)
@@ -83,14 +110,24 @@ class MeetingAdapter(
     }
 
     private fun MeetingJpaEntity.toDomain(): Meeting {
+        return toDomain(
+            dates = this.dates.map { it.availableDate }.toSet(),
+            participants = this.participants.map { it.toDomain() },
+        )
+    }
+
+    private fun MeetingJpaEntity.toDomain(
+        dates: Set<LocalDate>,
+        participants: List<Participant>,
+    ): Meeting {
         return Meeting(
             id = MeetingId(this.meetId),
             title = this.title,
             hostName = this.hostName,
             hostUserId = this.hostUserId?.let(::UserId),
-            dates = this.dates.map { it.availableDate }.toSet(),
+            dates = dates,
             maxParticipantCount = this.maxParticipantCount,
-            participants = this.participants.map { it.toDomain() },
+            participants = participants,
             memo = this.memo,
             status = this.status,
             finalizedDate = this.finalizedDate,
@@ -98,13 +135,32 @@ class MeetingAdapter(
     }
 
     private fun ParticipantJpaEntity.toDomain(): Participant {
+        return toDomain(
+            voteDates = this.voteDates.map { it.voteDate }.toSet(),
+        )
+    }
+
+    private fun ParticipantJpaEntity.toDomain(voteDates: Set<LocalDate>): Participant {
         return Participant(
             id = ParticipantId(this.participantId),
             name = this.name,
-            voteDates = this.voteDates.map { it.voteDate }.toSet(),
+            voteDates = voteDates,
             hasVoted = this.hasVoted,
             updatedAt = this.updatedAt,
         )
+    }
+
+    private fun findVoteDatesByParticipantIds(
+        participants: List<ParticipantJpaEntity>,
+    ): Map<Long, Set<LocalDate>> {
+        val participantIds = participants.map { it.participantId }
+        if (participantIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return meetingJpaRepository.findAllVoteDatesByParticipantIds(participantIds)
+            .groupBy { it.participant.participantId }
+            .mapValues { (_, entities) -> entities.map { it.voteDate }.toSet() }
     }
 
     private fun MeetingSummaryProjection.toDomain(): MeetingSummary {

@@ -1,7 +1,10 @@
 package com.nomoney.meeting.repository
 
 import com.nomoney.meeting.domain.MeetingStatus
+import com.nomoney.meeting.entity.MeetingDateJpaEntity
 import com.nomoney.meeting.entity.MeetingJpaEntity
+import com.nomoney.meeting.entity.ParticipantJpaEntity
+import com.nomoney.meeting.entity.ParticipantVoteDateJpaEntity
 import java.time.LocalDate
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
@@ -20,16 +23,16 @@ interface MeetingJpaRepository : JpaRepository<MeetingJpaEntity, String> {
     )
     fun findByMeetIdWithParticipants(@Param("meetId") meetId: String): MeetingJpaEntity?
 
-    @Query(
-        """
-        SELECT DISTINCT m FROM MeetingJpaEntity m
-        LEFT JOIN FETCH m.dates
-        LEFT JOIN FETCH m.participants p
-        LEFT JOIN FETCH p.voteDates
-        WHERE m.hostUserId = :hostUserId
-        """,
-    )
-    fun findAllByHostUserIdWithParticipants(@Param("hostUserId") hostUserId: Long): List<MeetingJpaEntity>
+    fun findAllByHostUserId(hostUserId: Long): List<MeetingJpaEntity>
+
+    @Query("SELECT d FROM MeetingDateJpaEntity d WHERE d.meeting.meetId IN :meetIds")
+    fun findAllMeetingDatesByMeetIds(@Param("meetIds") meetIds: Collection<String>): List<MeetingDateJpaEntity>
+
+    @Query("SELECT p FROM ParticipantJpaEntity p WHERE p.meeting.meetId IN :meetIds")
+    fun findAllParticipantsByMeetIds(@Param("meetIds") meetIds: Collection<String>): List<ParticipantJpaEntity>
+
+    @Query("SELECT v FROM ParticipantVoteDateJpaEntity v WHERE v.participant.participantId IN :participantIds")
+    fun findAllVoteDatesByParticipantIds(@Param("participantIds") participantIds: Collection<Long>): List<ParticipantVoteDateJpaEntity>
 
     @Query(
         """
