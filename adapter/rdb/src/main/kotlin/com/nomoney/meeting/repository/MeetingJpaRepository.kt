@@ -18,6 +18,16 @@ interface MeetingJpaRepository : JpaRepository<MeetingJpaEntity, String> {
     )
     fun findByMeetIdWithParticipants(@Param("meetId") meetId: String): MeetingJpaEntity?
 
+    @Query(
+        """
+        SELECT DISTINCT m FROM MeetingJpaEntity m
+        LEFT JOIN FETCH m.dates
+        LEFT JOIN FETCH m.participants p
+        LEFT JOIN FETCH p.voteDates
+        """,
+    )
+    fun findAllWithParticipants(): List<MeetingJpaEntity>
+
     @Modifying
     @Query("UPDATE MeetingJpaEntity m SET m.hostUserId = :toUserId WHERE m.hostUserId = :fromUserId")
     fun updateHostUserId(
