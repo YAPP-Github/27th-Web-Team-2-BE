@@ -32,8 +32,8 @@ class MeetingAdapter(
 
     @Transactional(readOnly = true)
     override fun findAll(): List<Meeting> {
-        return meetingJpaRepository.findAllWithParticipants()
-            .map { it.toDomain() }
+        val meetings = meetingJpaRepository.findAll()
+        return mapMeetingsToDomain(meetings)
     }
 
     @Transactional(readOnly = true)
