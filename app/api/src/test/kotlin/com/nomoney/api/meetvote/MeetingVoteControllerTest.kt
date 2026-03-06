@@ -182,17 +182,6 @@ class MeetingVoteControllerTest : DescribeSpec({
                     id = meetingId,
                     status = MeetingStatus.VOTING,
                 )
-                every {
-                    meetingService.addParticipant(
-                        meetingId = meetingId,
-                        name = request.hostName,
-                        voteDates = emptySet(),
-                        hasVoted = false,
-                    )
-                } returns fixtureMeeting(
-                    id = meetingId,
-                    status = MeetingStatus.VOTING,
-                )
 
                 val response = controller.createMeeting(request)
 
@@ -205,6 +194,9 @@ class MeetingVoteControllerTest : DescribeSpec({
                         dates = request.dates.toSet(),
                         maxParticipantCount = 5,
                     )
+                }
+                verify(exactly = 0) {
+                    meetingService.addParticipant(any(), any(), any(), any())
                 }
             }
 
@@ -251,6 +243,14 @@ class MeetingVoteControllerTest : DescribeSpec({
                         hostUserId = null,
                         dates = request.dates.toSet(),
                         maxParticipantCount = 3,
+                    )
+                }
+                verify(exactly = 1) {
+                    meetingService.addParticipant(
+                        meetingId = meetingId,
+                        name = request.hostName,
+                        voteDates = emptySet(),
+                        hasVoted = false,
                     )
                 }
             }
