@@ -87,7 +87,7 @@ class MeetingVoteController(
     )
     @GetMapping("/api/v1/meeting/list")
     fun getMeetingList(): List<MeetingSummaryResponse> {
-        return meetingService.getAllMeetings()
+        return meetingService.getAllMeetingSummaries()
             .map { it.toSummaryResponse() }
     }
 
