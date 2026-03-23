@@ -8,8 +8,10 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 1
       connection-timeout: 10000
-      idle-timeout: 30000
-      max-lifetime: 30000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 300000
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
