@@ -22,6 +22,8 @@ dependencies {
     implementation("io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config")
 
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:8.28.0")
+
+    testImplementation("org.springframework:spring-test")
 }
 
 tasks {
