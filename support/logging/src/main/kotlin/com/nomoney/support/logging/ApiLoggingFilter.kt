@@ -7,7 +7,9 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.http.HttpStatus
 import org.slf4j.MDC
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.util.ContentCachingRequestWrapper
 import org.springframework.web.util.ContentCachingResponseWrapper
@@ -22,7 +24,7 @@ import kotlin.to
 class ApiLoggingFilter(
     private val objectMapper: ObjectMapper,
 ) : Filter {
-    private val logger = logger()
+    private val logger = LoggerFactory.getLogger(ApiLoggingFilter::class.java)
 
     override fun doFilter(servletRequest: ServletRequest, servletResponse: ServletResponse, chain: FilterChain) {
         registerRequestId()
@@ -32,10 +34,18 @@ class ApiLoggingFilter(
         try {
             chain.doFilter(request, response)
         } finally {
-            logger.info(generateLog(request, response))
+            if (!shouldSkipLogging(request, response)) {
+                logger.info(generateLog(request, response))
+            }
             response.copyBodyToResponse()
             MDC.clear()
         }
+    }
+
+    internal fun shouldSkipLogging(request: HttpServletRequest, response: HttpServletResponse): Boolean {
+        val requestPath = request.requestURI.removePrefix(request.contextPath)
+        return response.status == HttpStatus.NOT_FOUND.value() &&
+            SUPPORTED_API_PREFIXES.none { prefix -> requestPath == prefix.removeSuffix("/") || requestPath.startsWith(prefix) }
     }
 
     private fun generateLog(request: ContentCachingRequestWrapper, response: ContentCachingResponseWrapper): String {
@@ -56,5 +66,9 @@ class ApiLoggingFilter(
         )
 
         return objectMapper.writeValueAsString(data)
+    }
+
+    companion object {
+        private val SUPPORTED_API_PREFIXES = listOf("/api/v1/")
     }
 }

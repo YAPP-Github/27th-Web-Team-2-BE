@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.NoHandlerFoundException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -115,6 +116,16 @@ class GlobalExceptionHandler {
             code = "E404",
             message = "요청한 리소스를 찾을 수 없습니다.",
             messageForDev = "핸들러를 찾을 수 없습니다: ${ex.httpMethod} ${ex.requestURL}",
+        )
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse)
+    }
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResourceFoundException(ex: NoResourceFoundException): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            code = "E404",
+            message = "요청한 리소스를 찾을 수 없습니다.",
+            messageForDev = "정적 리소스를 찾을 수 없습니다: ${ex.httpMethod} ${ex.resourcePath}",
         )
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse)
     }
