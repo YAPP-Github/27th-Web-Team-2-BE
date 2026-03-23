@@ -103,4 +103,4 @@ class TokenAuthenticationFilterTest : DescribeSpec({
             }
         }
     }
-})
+},)
