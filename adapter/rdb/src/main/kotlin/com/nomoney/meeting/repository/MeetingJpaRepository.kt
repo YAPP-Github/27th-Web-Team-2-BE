@@ -5,6 +5,7 @@ import com.nomoney.meeting.entity.MeetingDateJpaEntity
 import com.nomoney.meeting.entity.MeetingJpaEntity
 import com.nomoney.meeting.entity.ParticipantJpaEntity
 import com.nomoney.meeting.entity.ParticipantVoteDateJpaEntity
+import com.nomoney.meeting.entity.ParticipantVoteTimeSlotJpaEntity
 import java.time.LocalDate
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
@@ -18,6 +19,7 @@ interface MeetingJpaRepository : JpaRepository<MeetingJpaEntity, String> {
         LEFT JOIN FETCH m.dates
         LEFT JOIN FETCH m.participants p
         LEFT JOIN FETCH p.voteDates
+        LEFT JOIN FETCH p.voteTimeSlots
         WHERE m.meetId = :meetId
         """,
     )
@@ -33,6 +35,9 @@ interface MeetingJpaRepository : JpaRepository<MeetingJpaEntity, String> {
 
     @Query("SELECT v FROM ParticipantVoteDateJpaEntity v WHERE v.participant.participantId IN :participantIds")
     fun findAllVoteDatesByParticipantIds(@Param("participantIds") participantIds: Collection<Long>): List<ParticipantVoteDateJpaEntity>
+
+    @Query("SELECT t FROM ParticipantVoteTimeSlotJpaEntity t WHERE t.participant.participantId IN :participantIds")
+    fun findAllVoteTimeSlotsByParticipantIds(@Param("participantIds") participantIds: Collection<Long>): List<ParticipantVoteTimeSlotJpaEntity>
 
     @Query(
         """

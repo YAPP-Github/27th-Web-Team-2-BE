@@ -34,6 +34,9 @@ class ParticipantJpaEntity : BaseJpaEntity() {
     @OneToMany(mappedBy = "participant", cascade = [CascadeType.ALL], orphanRemoval = true)
     var voteDates: MutableSet<ParticipantVoteDateJpaEntity> = mutableSetOf()
 
+    @OneToMany(mappedBy = "participant", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var voteTimeSlots: MutableSet<ParticipantVoteTimeSlotJpaEntity> = mutableSetOf()
+
     companion object {
         fun of(
             participantId: Long = 0L,
