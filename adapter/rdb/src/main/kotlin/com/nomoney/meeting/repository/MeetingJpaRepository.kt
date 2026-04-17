@@ -36,7 +36,7 @@ interface MeetingJpaRepository : JpaRepository<MeetingJpaEntity, String> {
     @Query("SELECT v FROM ParticipantVoteDateJpaEntity v WHERE v.participant.participantId IN :participantIds")
     fun findAllVoteDatesByParticipantIds(@Param("participantIds") participantIds: Collection<Long>): List<ParticipantVoteDateJpaEntity>
 
-    @Query("SELECT t FROM ParticipantVoteTimeSlotJpaEntity t WHERE t.participant.participantId IN :participantIds")
+    @Query("SELECT t FROM ParticipantVoteTimeSlotJpaEntity t WHERE t.id.participantId IN :participantIds")
     fun findAllVoteTimeSlotsByParticipantIds(@Param("participantIds") participantIds: Collection<Long>): List<ParticipantVoteTimeSlotJpaEntity>
 
     @Query(
