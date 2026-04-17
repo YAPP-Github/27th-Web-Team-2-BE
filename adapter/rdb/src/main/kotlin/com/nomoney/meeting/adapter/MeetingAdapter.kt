@@ -27,9 +27,9 @@ class MeetingAdapter(
 
     @Transactional(readOnly = true)
     override fun findByMeetingId(meetingId: MeetingId): Meeting? {
-        val meeting = meetingJpaRepository.findById(meetingId.value).orElse(null)
+        val meeting = meetingJpaRepository.findByMeetIdWithParticipants(meetingId.value)
             ?: return null
-        return mapMeetingsToDomain(listOf(meeting)).firstOrNull()
+        return meeting.toDomainFromCollections()
     }
 
     @Transactional(readOnly = true)
@@ -80,15 +80,29 @@ class MeetingAdapter(
         }
 
         val savedEntity = meetingJpaRepository.save(entity)
-        return mapMeetingsToDomain(listOf(savedEntity)).first()
+        return savedEntity.toDomainFromCollections()
+    }
+
+    private fun ParticipantJpaEntity.toDomainFromCollections(): Participant {
+        val voteDates = this.voteDates.map { it.voteDate }.toSet()
+        val voteTimeSlots = this.voteTimeSlots.associate { it.voteDate to it.timeSlots }
+        return this.toDomain(voteDates = voteDates, voteTimeSlots = voteTimeSlots)
+    }
+
+    private fun MeetingJpaEntity.toDomainFromCollections(): Meeting {
+        val dates = this.dates.map { it.availableDate }.toSet()
+        val participantDomains = this.participants.map { it.toDomainFromCollections() }
+        return this.toDomain(dates = dates, participants = participantDomains)
     }
 
     private fun MeetingJpaEntity.toDomain(
         dates: Set<LocalDate>,
         participants: List<Participant>,
     ): Meeting {
-        val timeRange = if (timeRangeStart != null && timeRangeEnd != null) {
-            MeetingTimeRange(startTime = timeRangeStart!!, endTime = timeRangeEnd!!)
+        val start = timeRangeStart
+        val end = timeRangeEnd
+        val timeRange = if (start != null && end != null) {
+            MeetingTimeRange(startTime = start, endTime = end)
         } else {
             null
         }
