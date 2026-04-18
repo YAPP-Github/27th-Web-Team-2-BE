@@ -42,7 +42,9 @@ data class MeetingInfoResponse(
 
 @Schema(description = "시간 범위 응답")
 data class TimeRangeResponse(
+    @Schema(description = "시작 시간", example = "09:00")
     val startTime: LocalTime,
+    @Schema(description = "종료 시간", example = "18:00")
     val endTime: LocalTime,
     @Schema(description = "범위 내 슬롯 수")
     val slotCount: Int,

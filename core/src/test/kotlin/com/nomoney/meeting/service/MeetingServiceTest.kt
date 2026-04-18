@@ -660,6 +660,23 @@ class MeetingServiceTest : DescribeSpec({
             }
 
             describe("submitVote - 시간 슬롯 투표") {
+                it("날짜 전용 모임에 시간 슬롯을 전달하면 예외가 발생한다") {
+                    val meeting = fixtureMeeting(
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        timeRange = null,
+                    )
+                    every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                    shouldThrow<InvalidRequestException> {
+                        meetingService.submitVote(
+                            meetingId = meeting.id,
+                            name = "참여자",
+                            voteDates = emptyList(),
+                            voteTimeSlots = listOf(List(18) { false }),
+                        )
+                    }
+                }
+
                 it("시간 투표 모드에서 슬롯 수가 맞지 않으면 예외가 발생한다") {
                     val timeRange = MeetingTimeRange(
                         startTime = LocalTime.of(9, 0),

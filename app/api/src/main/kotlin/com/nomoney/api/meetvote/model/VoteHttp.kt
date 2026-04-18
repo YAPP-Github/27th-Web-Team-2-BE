@@ -12,7 +12,7 @@ data class VoteRequest(
     @Schema(description = "투표자 이름", example = "홍길동", required = true)
     val name: String,
 
-    @Schema(description = "투표한 날짜 목록 (날짜 전용 모드)", example = "[\"2025-01-15\", \"2025-01-16\"]")
+    @Schema(description = "투표한 날짜 목록 (날짜 전용 모드 전용; 시간 모드에서는 무시됨)", example = "[\"2025-01-15\", \"2025-01-16\"]")
     val voteDates: List<LocalDate> = emptyList(),
 
     @Schema(description = "시간 슬롯 투표 (시간 모드): [날짜 수][범위 내 슬롯 수]. voteTimeSlots[i][j] = dates[i]의 j번째 슬롯 가능 여부")

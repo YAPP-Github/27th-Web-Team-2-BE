@@ -32,6 +32,7 @@ import com.nomoney.api.swagger.SwaggerApiOperation
 import com.nomoney.api.swagger.SwaggerApiTag
 import com.nomoney.exception.NotFoundException
 import com.nomoney.meeting.domain.MeetingId
+import com.nomoney.meeting.domain.MeetingTimeRange
 import com.nomoney.meeting.service.MeetingService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -139,7 +140,7 @@ class MeetingVoteController(
     ): CreateMeetingResponse {
         val hostUserId = getSecurityUserId()
         val timeRange = request.timeRange?.let {
-            com.nomoney.meeting.domain.MeetingTimeRange(startTime = it.startTime, endTime = it.endTime)
+            MeetingTimeRange(startTime = it.startTime, endTime = it.endTime)
         }
         val meeting = meetingService.createMeeting(
             title = request.title,
