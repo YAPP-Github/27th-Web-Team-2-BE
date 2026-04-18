@@ -336,13 +336,6 @@ class MeetingService(
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
         assertMeetingHostOwnership(meeting, requesterUserId)
 
-        if (meeting.timeRange != null && (finalizedStartTime == null || finalizedEndTime == null)) {
-            throw InvalidRequestException(
-                "시간 투표 모임은 확정 시 시작/종료 시간이 필요합니다.",
-                "meetingId=${meetingId.value}",
-            )
-        }
-
         if (meeting.status == MeetingStatus.CONFIRMED) {
             return if (selectedDate == null || selectedDate == meeting.finalizedDate) {
                 meeting
@@ -352,6 +345,13 @@ class MeetingService(
                     "meetingId=${meetingId.value}, finalizedDate=${meeting.finalizedDate}",
                 )
             }
+        }
+
+        if (meeting.timeRange != null && (finalizedStartTime == null || finalizedEndTime == null)) {
+            throw InvalidRequestException(
+                "시간 투표 모임은 확정 시 시작/종료 시간이 필요합니다.",
+                "meetingId=${meetingId.value}",
+            )
         }
 
         if (meeting.dates.isEmpty()) {
@@ -472,11 +472,8 @@ class MeetingService(
             date to mask
         }.toMap()
 
-        val derivedVoteDates = resultMap
-            .filterValues { mask -> mask.contains('1') }
-            .keys
-
-        return derivedVoteDates to resultMap
+        val filteredMap = resultMap.filter { (_, mask) -> mask.contains('1') }
+        return filteredMap.keys to filteredMap
     }
 
     fun generateMeetId(): MeetingId {

@@ -18,6 +18,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.time.LocalDate
+import java.time.LocalTime
 
 class MeetingServiceTest : DescribeSpec({
 
@@ -640,8 +641,8 @@ class MeetingServiceTest : DescribeSpec({
             describe("createMeeting - 시간 범위 설정") {
                 it("timeRange를 설정하면 생성된 미팅에 timeRange가 포함된다") {
                     val timeRange = MeetingTimeRange(
-                        startTime = java.time.LocalTime.of(9, 0),
-                        endTime = java.time.LocalTime.of(18, 0),
+                        startTime = LocalTime.of(9, 0),
+                        endTime = LocalTime.of(18, 0),
                     )
                     every { meetingRepository.save(any()) } answers { firstArg() }
 
@@ -661,8 +662,8 @@ class MeetingServiceTest : DescribeSpec({
             describe("submitVote - 시간 슬롯 투표") {
                 it("시간 투표 모드에서 슬롯 수가 맞지 않으면 예외가 발생한다") {
                     val timeRange = MeetingTimeRange(
-                        startTime = java.time.LocalTime.of(9, 0),
-                        endTime = java.time.LocalTime.of(18, 0),
+                        startTime = LocalTime.of(9, 0),
+                        endTime = LocalTime.of(18, 0),
                     )
                     val meeting = fixtureMeeting(
                         dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
@@ -685,8 +686,8 @@ class MeetingServiceTest : DescribeSpec({
                     val date1 = LocalDate.of(2026, 2, 20)
                     val date2 = LocalDate.of(2026, 2, 21)
                     val timeRange = MeetingTimeRange(
-                        startTime = java.time.LocalTime.of(9, 0),
-                        endTime = java.time.LocalTime.of(18, 0),
+                        startTime = LocalTime.of(9, 0),
+                        endTime = LocalTime.of(18, 0),
                     )
                     val meeting = fixtureMeeting(
                         dates = setOf(date1, date2),
@@ -708,6 +709,68 @@ class MeetingServiceTest : DescribeSpec({
                     val savedParticipant = result.participants.first { it.name == "참여자" }
                     savedParticipant.voteDates shouldBe setOf(date1)
                     savedParticipant.voteTimeSlots[date1] shouldBe "000000000000000000" + "1" + "0".repeat(29)
+                    savedParticipant.voteTimeSlots[date2] shouldBe null
+                }
+            }
+
+            describe("finalizeMeeting - 시간 투표 검증") {
+                it("시간 투표 모임을 확정할 때 시작/종료 시간이 없으면 예외가 발생한다") {
+                    val timeRange = MeetingTimeRange(
+                        startTime = LocalTime.of(9, 0),
+                        endTime = LocalTime.of(18, 0),
+                    )
+                    val meeting = fixtureMeeting(timeRange = timeRange)
+                    every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                    shouldThrow<InvalidRequestException> {
+                        meetingService.finalizeMeeting(
+                            meetingId = meeting.id,
+                            selectedDate = LocalDate.of(2026, 2, 20),
+                            requesterUserId = UserId(1L),
+                        )
+                    }
+                }
+
+                it("시간 투표 모임을 확정할 때 시작/종료 시간을 제공하면 성공한다") {
+                    val timeRange = MeetingTimeRange(
+                        startTime = LocalTime.of(9, 0),
+                        endTime = LocalTime.of(18, 0),
+                    )
+                    val meeting = fixtureMeeting(timeRange = timeRange)
+                    every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                    every { meetingRepository.save(any()) } answers { firstArg() }
+
+                    val result = meetingService.finalizeMeeting(
+                        meetingId = meeting.id,
+                        selectedDate = LocalDate.of(2026, 2, 20),
+                        requesterUserId = UserId(1L),
+                        finalizedStartTime = LocalTime.of(10, 0),
+                        finalizedEndTime = LocalTime.of(12, 0),
+                    )
+
+                    result.finalizedStartTime shouldBe LocalTime.of(10, 0)
+                    result.finalizedEndTime shouldBe LocalTime.of(12, 0)
+                }
+
+                it("이미 확정된 시간 투표 모임은 시간 없이 재요청해도 idempotent하게 처리된다") {
+                    val timeRange = MeetingTimeRange(
+                        startTime = LocalTime.of(9, 0),
+                        endTime = LocalTime.of(18, 0),
+                    )
+                    val meeting = fixtureMeeting(
+                        status = MeetingStatus.CONFIRMED,
+                        finalizedDate = LocalDate.of(2026, 2, 20),
+                        timeRange = timeRange,
+                    )
+                    every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                    val result = meetingService.finalizeMeeting(
+                        meetingId = meeting.id,
+                        selectedDate = LocalDate.of(2026, 2, 20),
+                        requesterUserId = UserId(1L),
+                    )
+
+                    result shouldBe meeting
                 }
             }
         }
