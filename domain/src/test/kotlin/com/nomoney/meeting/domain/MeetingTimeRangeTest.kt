@@ -42,10 +42,9 @@ class MeetingTimeRangeTest : DescribeSpec({
                     MeetingTimeRange(LocalTime.of(9, 15), LocalTime.of(10, 0))
                 }
             }
-            it("48슬롯을 초과하는 범위는 예외가 발생한다") {
-                shouldThrow<IllegalArgumentException> {
-                    MeetingTimeRange(LocalTime.of(0, 0), LocalTime.of(23, 30))
-                }
+            it("00:00~23:30은 47개 슬롯으로 유효하다") {
+                val range = MeetingTimeRange(LocalTime.of(0, 0), LocalTime.of(23, 30))
+                range.slotCount shouldBe 47
             }
         }
     }

@@ -138,12 +138,16 @@ class MeetingVoteController(
         @RequestBody request: CreateMeetingRequest,
     ): CreateMeetingResponse {
         val hostUserId = getSecurityUserId()
+        val timeRange = request.timeRange?.let {
+            com.nomoney.meeting.domain.MeetingTimeRange(startTime = it.startTime, endTime = it.endTime)
+        }
         val meeting = meetingService.createMeeting(
             title = request.title,
             hostName = request.hostName,
             hostUserId = hostUserId,
             dates = request.dates.toSet(),
             maxParticipantCount = request.maxParticipantCount,
+            timeRange = timeRange,
         )
 
         if (hostUserId == null) {
@@ -228,7 +232,8 @@ class MeetingVoteController(
         meetingService.submitVote(
             meetingId = request.meetingId,
             name = request.name,
-            voteDates = request.voteDates.toSet(),
+            voteDates = request.voteDates,
+            voteTimeSlots = request.voteTimeSlots,
         )
 
         return VoteResponse(success = true)
@@ -243,10 +248,11 @@ class MeetingVoteController(
     fun updateVote(
         @RequestBody request: VoteRequest,
     ): VoteResponse {
-        meetingService.updateParticipant(
+        meetingService.updateParticipantWithTimeSlots(
             meetingId = request.meetingId,
             name = request.name,
-            voteDates = request.voteDates.toSet(),
+            voteDates = request.voteDates,
+            voteTimeSlots = request.voteTimeSlots,
         )
 
         return VoteResponse(success = true)
@@ -266,12 +272,16 @@ class MeetingVoteController(
             meetingId = request.meetingId,
             selectedDate = request.finalizedDate,
             requesterUserId = requesterUserId,
+            finalizedStartTime = request.finalizedStartTime,
+            finalizedEndTime = request.finalizedEndTime,
         )
         return FinalizeMeetingResponse(
             status = meeting.status,
             finalizedDate = requireNotNull(meeting.finalizedDate) {
                 "CONFIRMED 상태의 모임에는 finalizedDate가 반드시 존재해야 합니다. meetingId=${meeting.id.value}"
             },
+            finalizedStartTime = meeting.finalizedStartTime,
+            finalizedEndTime = meeting.finalizedEndTime,
         )
     }
 
@@ -289,6 +299,8 @@ class MeetingVoteController(
             meetingId = request.meetingId,
             finalizedDate = request.finalizedDate,
             requesterUserId = requesterUserId,
+            finalizedStartTime = request.finalizedStartTime,
+            finalizedEndTime = request.finalizedEndTime,
         )
         return FinalizeMeetingConflictCheckResponse(isConflict = isConflict)
     }

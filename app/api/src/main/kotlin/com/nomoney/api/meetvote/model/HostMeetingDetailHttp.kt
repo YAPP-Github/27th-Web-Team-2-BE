@@ -39,15 +39,19 @@ data class HostMeetingDetailResponse(
     val notVotedParticipantCount: Int,
 )
 
-fun MeetingHostDetail.toHostDetailResponse(): HostMeetingDetailResponse = HostMeetingDetailResponse(
-    id = this.meeting.id,
-    title = this.meeting.title,
-    dates = this.meeting.dates.toList().sorted(),
-    status = this.meeting.status,
-    finalizedDate = this.meeting.finalizedDate,
-    maxParticipantCount = this.meeting.maxParticipantCount,
-    participants = this.meeting.participants.map { it.toResponse() },
-    hostName = this.meeting.hostName,
-    memo = this.meeting.memo,
-    notVotedParticipantCount = this.notVotedParticipantCount,
-)
+fun MeetingHostDetail.toHostDetailResponse(): HostMeetingDetailResponse {
+    val sortedDates = this.meeting.dates.toList().sorted()
+    val timeRange = this.meeting.timeRange
+    return HostMeetingDetailResponse(
+        id = this.meeting.id,
+        title = this.meeting.title,
+        dates = sortedDates,
+        status = this.meeting.status,
+        finalizedDate = this.meeting.finalizedDate,
+        maxParticipantCount = this.meeting.maxParticipantCount,
+        participants = this.meeting.participants.map { it.toResponse(sortedDates, timeRange) },
+        hostName = this.meeting.hostName,
+        memo = this.meeting.memo,
+        notVotedParticipantCount = this.notVotedParticipantCount,
+    )
+}

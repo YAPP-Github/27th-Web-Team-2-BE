@@ -6,6 +6,7 @@ import com.nomoney.meeting.service.MeetingDateVoteDetail
 import com.nomoney.meeting.service.MeetingFinalizePreview
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Schema(description = "모임 확정 후보 조회 응답")
 data class FinalizeMeetingPreviewResponse(
@@ -44,6 +45,12 @@ data class FinalizeMeetingRequest(
         required = false,
     )
     val finalizedDate: LocalDate? = null,
+
+    @Schema(description = "확정 시작 시간 (시간 투표 모임 필수)", example = "10:00")
+    val finalizedStartTime: LocalTime? = null,
+
+    @Schema(description = "확정 종료 시간 (시간 투표 모임 필수)", example = "12:00")
+    val finalizedEndTime: LocalTime? = null,
 )
 
 @Schema(description = "모임 확정 응답")
@@ -53,6 +60,12 @@ data class FinalizeMeetingResponse(
 
     @Schema(description = "최종 확정 날짜", example = "2026-02-20")
     val finalizedDate: LocalDate,
+
+    @Schema(description = "확정 시작 시간 (시간 투표 모임만)", example = "10:00")
+    val finalizedStartTime: LocalTime? = null,
+
+    @Schema(description = "확정 종료 시간 (시간 투표 모임만)", example = "12:00")
+    val finalizedEndTime: LocalTime? = null,
 )
 
 fun MeetingFinalizePreview.toFinalizePreviewResponse(): FinalizeMeetingPreviewResponse = FinalizeMeetingPreviewResponse(
