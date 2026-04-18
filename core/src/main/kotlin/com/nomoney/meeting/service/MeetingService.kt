@@ -9,11 +9,13 @@ import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
 import com.nomoney.meeting.domain.MeetingSummary
+import com.nomoney.meeting.domain.MeetingTimeRange
 import com.nomoney.meeting.domain.Participant
 import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
 import java.security.SecureRandom
 import java.time.LocalDate
+import java.time.LocalTime
 import org.springframework.stereotype.Service
 
 @Service
@@ -32,6 +34,7 @@ class MeetingService(
         hostUserId: UserId?,
         dates: Set<LocalDate>,
         maxParticipantCount: Int? = null,
+        timeRange: MeetingTimeRange? = null,
     ): Meeting {
         assertValidMaxParticipantCount(maxParticipantCount)
 
@@ -46,6 +49,7 @@ class MeetingService(
             participants = emptyList(),
             status = MeetingStatus.VOTING,
             finalizedDate = null,
+            timeRange = timeRange,
         )
         return meetingRepository.save(meeting)
     }
@@ -208,6 +212,7 @@ class MeetingService(
         name: String,
         voteDates: Set<LocalDate>,
         hasVoted: Boolean,
+        voteTimeSlots: Map<LocalDate, String> = emptyMap(),
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
@@ -219,6 +224,7 @@ class MeetingService(
             name = name,
             voteDates = voteDates,
             hasVoted = hasVoted,
+            voteTimeSlots = voteTimeSlots,
         )
 
         val updatedMeeting = meeting.copy(
@@ -232,6 +238,7 @@ class MeetingService(
         meetingId: MeetingId,
         name: String,
         voteDates: Set<LocalDate>,
+        voteTimeSlots: Map<LocalDate, String> = emptyMap(),
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
@@ -247,6 +254,7 @@ class MeetingService(
                 participant.copy(
                     voteDates = voteDates,
                     hasVoted = true,
+                    voteTimeSlots = voteTimeSlots,
                 )
             } else {
                 participant
@@ -261,35 +269,53 @@ class MeetingService(
     fun submitVote(
         meetingId: MeetingId,
         name: String,
-        voteDates: Set<LocalDate>,
+        voteDates: List<LocalDate>,
+        voteTimeSlots: List<List<Boolean>>? = null,
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
 
-        assertAllowedVoteDates(meeting, voteDates)
+        val (resolvedVoteDates, resolvedVoteTimeSlots) = resolveVoteData(meeting, voteDates, voteTimeSlots)
+        assertAllowedVoteDates(meeting, resolvedVoteDates)
 
         val participant = meeting.participants.firstOrNull { it.name == name }
         return when {
-            participant == null -> {
-                addParticipant(
-                    meetingId = meetingId,
-                    name = name,
-                    voteDates = voteDates,
-                    hasVoted = true,
-                )
-            }
-            participant.hasVoted -> {
-                throw DuplicateContentException("이미 투표를 완료한 참여자입니다.", "name: $name")
-            }
+            participant == null -> addParticipant(
+                meetingId = meetingId,
+                name = name,
+                voteDates = resolvedVoteDates,
+                hasVoted = true,
+                voteTimeSlots = resolvedVoteTimeSlots,
+            )
+            participant.hasVoted -> throw DuplicateContentException("이미 투표를 완료한 참여자입니다.", "name: $name")
             else -> {
                 require(meeting.hostName == name) { "주최자 Participant는 반드시 meeting.hostName과 동일한 name을 가져야 한다.: $name" }
                 updateParticipant(
                     meetingId = meetingId,
                     name = name,
-                    voteDates = voteDates,
+                    voteDates = resolvedVoteDates,
+                    voteTimeSlots = resolvedVoteTimeSlots,
                 )
             }
         }
+    }
+
+    fun updateParticipantWithTimeSlots(
+        meetingId: MeetingId,
+        name: String,
+        voteDates: List<LocalDate>,
+        voteTimeSlots: List<List<Boolean>>? = null,
+    ): Meeting {
+        val meeting = getMeetingInfo(meetingId)
+            ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
+
+        val (resolvedVoteDates, resolvedVoteTimeSlots) = resolveVoteData(meeting, voteDates, voteTimeSlots)
+        return updateParticipant(
+            meetingId = meetingId,
+            name = name,
+            voteDates = resolvedVoteDates,
+            voteTimeSlots = resolvedVoteTimeSlots,
+        )
     }
 
     fun existsVotedParticipantByName(meetingId: MeetingId, name: String): Boolean {
@@ -303,10 +329,19 @@ class MeetingService(
         meetingId: MeetingId,
         selectedDate: LocalDate?,
         requesterUserId: UserId,
+        finalizedStartTime: LocalTime? = null,
+        finalizedEndTime: LocalTime? = null,
     ): Meeting {
         val meeting = getMeetingInfo(meetingId)
             ?: throw NotFoundException("모임을 찾을 수 없습니다.", "ID: ${meetingId.value}")
         assertMeetingHostOwnership(meeting, requesterUserId)
+
+        if (meeting.timeRange != null && (finalizedStartTime == null || finalizedEndTime == null)) {
+            throw InvalidRequestException(
+                "시간 투표 모임은 확정 시 시작/종료 시간이 필요합니다.",
+                "meetingId=${meetingId.value}",
+            )
+        }
 
         if (meeting.status == MeetingStatus.CONFIRMED) {
             return if (selectedDate == null || selectedDate == meeting.finalizedDate) {
@@ -338,6 +373,8 @@ class MeetingService(
             meeting.copy(
                 status = MeetingStatus.CONFIRMED,
                 finalizedDate = resolvedFinalizedDate,
+                finalizedStartTime = finalizedStartTime,
+                finalizedEndTime = finalizedEndTime,
             ),
         )
     }
@@ -346,6 +383,8 @@ class MeetingService(
         meetingId: MeetingId,
         finalizedDate: LocalDate,
         requesterUserId: UserId,
+        finalizedStartTime: LocalTime? = null,
+        finalizedEndTime: LocalTime? = null,
     ): Boolean {
         if (
             hasDateConflictWithConfirmedMeetings(
@@ -361,6 +400,8 @@ class MeetingService(
             meetingId = meetingId,
             selectedDate = finalizedDate,
             requesterUserId = requesterUserId,
+            finalizedStartTime = finalizedStartTime,
+            finalizedEndTime = finalizedEndTime,
         )
         return false
     }
@@ -387,6 +428,55 @@ class MeetingService(
             topDateVoteDetails = topDateVoteDetails,
             requiresDateSelection = topDateVoteDetails.size > 1,
         )
+    }
+
+    private fun resolveVoteData(
+        meeting: Meeting,
+        voteDates: List<LocalDate>,
+        voteTimeSlots: List<List<Boolean>>?,
+    ): Pair<Set<LocalDate>, Map<LocalDate, String>> {
+        if (voteTimeSlots == null) {
+            return voteDates.toSet() to emptyMap()
+        }
+
+        val timeRange = meeting.timeRange
+            ?: throw InvalidRequestException(
+                "날짜 전용 모임에는 시간 슬롯 투표를 할 수 없습니다.",
+                "meetingId=${meeting.id.value}",
+            )
+
+        val sortedDates = meeting.dates.sorted()
+        if (voteTimeSlots.size != sortedDates.size) {
+            throw InvalidRequestException(
+                "날짜 수와 시간 슬롯 배열 수가 일치하지 않습니다.",
+                "expected=${sortedDates.size}, actual=${voteTimeSlots.size}",
+            )
+        }
+
+        val offset = timeRange.startIndex
+        val slotCount = timeRange.slotCount
+
+        val resultMap = sortedDates.mapIndexed { i, date ->
+            val bools = voteTimeSlots[i]
+            if (bools.size != slotCount) {
+                throw InvalidRequestException(
+                    "슬롯 수가 일치하지 않습니다.",
+                    "expected=$slotCount, actual=${bools.size}",
+                )
+            }
+            val mask = buildString(48) {
+                repeat(offset) { append('0') }
+                bools.forEach { append(if (it) '1' else '0') }
+                repeat(48 - offset - slotCount) { append('0') }
+            }
+            date to mask
+        }.toMap()
+
+        val derivedVoteDates = resultMap
+            .filterValues { mask -> mask.contains('1') }
+            .keys
+
+        return derivedVoteDates to resultMap
     }
 
     fun generateMeetId(): MeetingId {

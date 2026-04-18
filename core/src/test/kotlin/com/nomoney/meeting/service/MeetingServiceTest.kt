@@ -6,6 +6,7 @@ import com.nomoney.exception.UnauthorizedException
 import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
+import com.nomoney.meeting.domain.MeetingTimeRange
 import com.nomoney.meeting.domain.Participant
 import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.port.MeetingRepository
@@ -464,7 +465,7 @@ class MeetingServiceTest : DescribeSpec({
                     meetingService.submitVote(
                         meetingId = meeting.id,
                         name = "신규참여자",
-                        voteDates = setOf(LocalDate.of(2026, 2, 20)),
+                        voteDates = listOf(LocalDate.of(2026, 2, 20)),
                     )
                 }
 
@@ -491,7 +492,7 @@ class MeetingServiceTest : DescribeSpec({
                 val result = meetingService.submitVote(
                     meetingId = meeting.id,
                     name = "주최자",
-                    voteDates = setOf(LocalDate.of(2026, 2, 20)),
+                    voteDates = listOf(LocalDate.of(2026, 2, 20)),
                 )
 
                 result.participants.single().hasVoted shouldBe true
@@ -634,6 +635,82 @@ class MeetingServiceTest : DescribeSpec({
                 verify(exactly = 0) { meetingRepository.save(any()) }
             }
         }
+
+        describe("시간 투표 모드") {
+            describe("createMeeting - 시간 범위 설정") {
+                it("timeRange를 설정하면 생성된 미팅에 timeRange가 포함된다") {
+                    val timeRange = MeetingTimeRange(
+                        startTime = java.time.LocalTime.of(9, 0),
+                        endTime = java.time.LocalTime.of(18, 0),
+                    )
+                    every { meetingRepository.save(any()) } answers { firstArg() }
+
+                    val result = meetingService.createMeeting(
+                        title = "시간 투표 모임",
+                        hostName = "주최자",
+                        hostUserId = UserId(1L),
+                        dates = setOf(LocalDate.of(2026, 2, 20)),
+                        maxParticipantCount = null,
+                        timeRange = timeRange,
+                    )
+
+                    result.timeRange shouldBe timeRange
+                }
+            }
+
+            describe("submitVote - 시간 슬롯 투표") {
+                it("시간 투표 모드에서 슬롯 수가 맞지 않으면 예외가 발생한다") {
+                    val timeRange = MeetingTimeRange(
+                        startTime = java.time.LocalTime.of(9, 0),
+                        endTime = java.time.LocalTime.of(18, 0),
+                    )
+                    val meeting = fixtureMeeting(
+                        dates = setOf(LocalDate.of(2026, 2, 20), LocalDate.of(2026, 2, 21)),
+                        timeRange = timeRange,
+                    )
+                    every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+
+                    shouldThrow<InvalidRequestException> {
+                        meetingService.submitVote(
+                            meetingId = meeting.id,
+                            name = "참여자",
+                            voteDates = emptyList(),
+                            // dates가 2개인데 voteTimeSlots도 2개여야 하지만 1개만 전달
+                            voteTimeSlots = listOf(List(18) { false }),
+                        )
+                    }
+                }
+
+                it("시간 투표 모드에서 슬롯 내 true가 있는 날짜는 voteDates에 포함된다") {
+                    val date1 = LocalDate.of(2026, 2, 20)
+                    val date2 = LocalDate.of(2026, 2, 21)
+                    val timeRange = MeetingTimeRange(
+                        startTime = java.time.LocalTime.of(9, 0),
+                        endTime = java.time.LocalTime.of(18, 0),
+                    )
+                    val meeting = fixtureMeeting(
+                        dates = setOf(date1, date2),
+                        timeRange = timeRange,
+                    )
+                    every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
+                    every { meetingRepository.save(any()) } answers { firstArg() }
+
+                    val slots1 = List(18) { i -> i == 0 }  // date1: 09:00만 선택
+                    val slots2 = List(18) { false }          // date2: 없음
+
+                    val result = meetingService.submitVote(
+                        meetingId = meeting.id,
+                        name = "참여자",
+                        voteDates = emptyList(),
+                        voteTimeSlots = listOf(slots1, slots2),
+                    )
+
+                    val savedParticipant = result.participants.first { it.name == "참여자" }
+                    savedParticipant.voteDates shouldBe setOf(date1)
+                    savedParticipant.voteTimeSlots[date1] shouldBe "000000000000000000" + "1" + "0".repeat(29)
+                }
+            }
+        }
     }
 },)
 
@@ -646,6 +723,7 @@ private fun fixtureMeeting(
     finalizedDate: LocalDate? = null,
     dates: Set<LocalDate> = setOf(LocalDate.of(2026, 2, 20)),
     participants: List<Participant> = emptyList(),
+    timeRange: MeetingTimeRange? = null,
 ): Meeting {
     return Meeting(
         id = id,
@@ -657,6 +735,7 @@ private fun fixtureMeeting(
         participants = participants,
         status = status,
         finalizedDate = finalizedDate,
+        timeRange = timeRange,
     )
 }
 
