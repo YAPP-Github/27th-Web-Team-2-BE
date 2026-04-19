@@ -48,4 +48,4 @@ class MeetingTimeRangeTest : DescribeSpec({
             }
         }
     }
-})
+},)

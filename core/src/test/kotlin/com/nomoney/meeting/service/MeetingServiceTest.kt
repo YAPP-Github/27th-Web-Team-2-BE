@@ -713,8 +713,8 @@ class MeetingServiceTest : DescribeSpec({
                     every { meetingRepository.findByMeetingId(meeting.id) } returns meeting
                     every { meetingRepository.save(any()) } answers { firstArg() }
 
-                    val slots1 = List(18) { i -> i == 0 }  // date1: 09:00만 선택
-                    val slots2 = List(18) { false }          // date2: 없음
+                    val slots1 = List(18) { i -> i == 0 } // date1: 09:00만 선택
+                    val slots2 = List(18) { false } // date2: 없음
 
                     val result = meetingService.submitVote(
                         meetingId = meeting.id,
