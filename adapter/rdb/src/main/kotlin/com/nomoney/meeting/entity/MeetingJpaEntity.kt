@@ -11,6 +11,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Entity
 @Table(name = "meetings")
@@ -41,6 +42,18 @@ class MeetingJpaEntity : BaseJpaEntity() {
     @Column(name = "finalized_date", nullable = true)
     var finalizedDate: LocalDate? = null
 
+    @Column(name = "time_range_start", nullable = true)
+    var timeRangeStart: LocalTime? = null
+
+    @Column(name = "time_range_end", nullable = true)
+    var timeRangeEnd: LocalTime? = null
+
+    @Column(name = "finalized_start_time", nullable = true)
+    var finalizedStartTime: LocalTime? = null
+
+    @Column(name = "finalized_end_time", nullable = true)
+    var finalizedEndTime: LocalTime? = null
+
     @OneToMany(mappedBy = "meeting", cascade = [CascadeType.ALL], orphanRemoval = true)
     var dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf()
 
@@ -57,6 +70,10 @@ class MeetingJpaEntity : BaseJpaEntity() {
             memo: String? = null,
             status: MeetingStatus = MeetingStatus.VOTING,
             finalizedDate: LocalDate? = null,
+            timeRangeStart: LocalTime? = null,
+            timeRangeEnd: LocalTime? = null,
+            finalizedStartTime: LocalTime? = null,
+            finalizedEndTime: LocalTime? = null,
             dates: MutableSet<MeetingDateJpaEntity> = mutableSetOf(),
             participants: MutableSet<ParticipantJpaEntity> = mutableSetOf(),
         ): MeetingJpaEntity {
@@ -69,6 +86,10 @@ class MeetingJpaEntity : BaseJpaEntity() {
                 this.memo = memo
                 this.status = status
                 this.finalizedDate = finalizedDate
+                this.timeRangeStart = timeRangeStart
+                this.timeRangeEnd = timeRangeEnd
+                this.finalizedStartTime = finalizedStartTime
+                this.finalizedEndTime = finalizedEndTime
                 this.dates = dates
                 this.participants = participants
             }

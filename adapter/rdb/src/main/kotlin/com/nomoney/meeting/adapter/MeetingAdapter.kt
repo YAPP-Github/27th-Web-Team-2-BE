@@ -5,12 +5,14 @@ import com.nomoney.meeting.domain.Meeting
 import com.nomoney.meeting.domain.MeetingId
 import com.nomoney.meeting.domain.MeetingStatus
 import com.nomoney.meeting.domain.MeetingSummary
+import com.nomoney.meeting.domain.MeetingTimeRange
 import com.nomoney.meeting.domain.Participant
 import com.nomoney.meeting.domain.ParticipantId
 import com.nomoney.meeting.entity.MeetingDateJpaEntity
 import com.nomoney.meeting.entity.MeetingJpaEntity
 import com.nomoney.meeting.entity.ParticipantJpaEntity
 import com.nomoney.meeting.entity.ParticipantVoteDateJpaEntity
+import com.nomoney.meeting.entity.ParticipantVoteTimeSlotJpaEntity
 import com.nomoney.meeting.port.MeetingRepository
 import com.nomoney.meeting.repository.MeetingJpaRepository
 import com.nomoney.meeting.repository.MeetingSummaryProjection
@@ -25,9 +27,9 @@ class MeetingAdapter(
 
     @Transactional(readOnly = true)
     override fun findByMeetingId(meetingId: MeetingId): Meeting? {
-        val meeting = meetingJpaRepository.findById(meetingId.value).orElse(null)
+        val meeting = meetingJpaRepository.findByMeetIdWithParticipants(meetingId.value)
             ?: return null
-        return mapMeetingsToDomain(listOf(meeting)).firstOrNull()
+        return meeting.toDomainFromCollections()
     }
 
     @Transactional(readOnly = true)
@@ -78,20 +80,32 @@ class MeetingAdapter(
         }
 
         val savedEntity = meetingJpaRepository.save(entity)
-        return savedEntity.toDomain()
+        return savedEntity.toDomainFromCollections()
     }
 
-    private fun MeetingJpaEntity.toDomain(): Meeting {
-        return toDomain(
-            dates = this.dates.map { it.availableDate }.toSet(),
-            participants = this.participants.map { it.toDomain() },
-        )
+    private fun ParticipantJpaEntity.toDomainFromCollections(): Participant {
+        val voteDates = this.voteDates.map { it.voteDate }.toSet()
+        val voteTimeSlots = this.voteTimeSlots.associate { it.voteDate to it.timeSlots }
+        return this.toDomain(voteDates = voteDates, voteTimeSlots = voteTimeSlots)
+    }
+
+    private fun MeetingJpaEntity.toDomainFromCollections(): Meeting {
+        val dates = this.dates.map { it.availableDate }.toSet()
+        val participantDomains = this.participants.map { it.toDomainFromCollections() }
+        return this.toDomain(dates = dates, participants = participantDomains)
     }
 
     private fun MeetingJpaEntity.toDomain(
         dates: Set<LocalDate>,
         participants: List<Participant>,
     ): Meeting {
+        val start = timeRangeStart
+        val end = timeRangeEnd
+        val timeRange = if (start != null && end != null) {
+            MeetingTimeRange(startTime = start, endTime = end)
+        } else {
+            null
+        }
         return Meeting(
             id = MeetingId(this.meetId),
             title = this.title,
@@ -103,22 +117,23 @@ class MeetingAdapter(
             memo = this.memo,
             status = this.status,
             finalizedDate = this.finalizedDate,
+            timeRange = timeRange,
+            finalizedStartTime = this.finalizedStartTime,
+            finalizedEndTime = this.finalizedEndTime,
         )
     }
 
-    private fun ParticipantJpaEntity.toDomain(): Participant {
-        return toDomain(
-            voteDates = this.voteDates.map { it.voteDate }.toSet(),
-        )
-    }
-
-    private fun ParticipantJpaEntity.toDomain(voteDates: Set<LocalDate>): Participant {
+    private fun ParticipantJpaEntity.toDomain(
+        voteDates: Set<LocalDate>,
+        voteTimeSlots: Map<LocalDate, String> = emptyMap(),
+    ): Participant {
         return Participant(
             id = ParticipantId(this.participantId),
             name = this.name,
             voteDates = voteDates,
             hasVoted = this.hasVoted,
             updatedAt = this.updatedAt,
+            voteTimeSlots = voteTimeSlots,
         )
     }
 
@@ -126,19 +141,26 @@ class MeetingAdapter(
         participants: List<ParticipantJpaEntity>,
     ): Map<Long, Set<LocalDate>> {
         val participantIds = participants.map { it.participantId }
-        if (participantIds.isEmpty()) {
-            return emptyMap()
-        }
+        if (participantIds.isEmpty()) return emptyMap()
 
         return meetingJpaRepository.findAllVoteDatesByParticipantIds(participantIds)
             .groupBy { it.participant.participantId }
             .mapValues { (_, entities) -> entities.map { it.voteDate }.toSet() }
     }
 
+    private fun findVoteTimeSlotsByParticipantIds(
+        participants: List<ParticipantJpaEntity>,
+    ): Map<Long, Map<LocalDate, String>> {
+        val participantIds = participants.map { it.participantId }
+        if (participantIds.isEmpty()) return emptyMap()
+
+        return meetingJpaRepository.findAllVoteTimeSlotsByParticipantIds(participantIds)
+            .groupBy { it.id.participantId }
+            .mapValues { (_, entities) -> entities.associate { it.voteDate to it.timeSlots } }
+    }
+
     private fun mapMeetingsToDomain(meetings: List<MeetingJpaEntity>): List<Meeting> {
-        if (meetings.isEmpty()) {
-            return emptyList()
-        }
+        if (meetings.isEmpty()) return emptyList()
 
         val meetIds = meetings.map { it.meetId }
         val datesByMeetId = meetingJpaRepository.findAllMeetingDatesByMeetIds(meetIds)
@@ -147,6 +169,7 @@ class MeetingAdapter(
 
         val participants = meetingJpaRepository.findAllParticipantsByMeetIds(meetIds)
         val voteDatesByParticipantId = findVoteDatesByParticipantIds(participants)
+        val voteTimeSlotsByParticipantId = findVoteTimeSlotsByParticipantIds(participants)
 
         val participantsByMeetId = participants
             .groupBy { it.meeting.meetId }
@@ -154,6 +177,7 @@ class MeetingAdapter(
                 entities.map { participant ->
                     participant.toDomain(
                         voteDates = voteDatesByParticipantId[participant.participantId].orEmpty(),
+                        voteTimeSlots = voteTimeSlotsByParticipantId[participant.participantId].orEmpty(),
                     )
                 }
             }
@@ -186,6 +210,10 @@ class MeetingAdapter(
             memo = this.memo,
             status = this.status,
             finalizedDate = this.finalizedDate,
+            timeRangeStart = this.timeRange?.startTime,
+            timeRangeEnd = this.timeRange?.endTime,
+            finalizedStartTime = this.finalizedStartTime,
+            finalizedEndTime = this.finalizedEndTime,
         )
 
         meetingEntity.addMeetingDates(this.dates)
@@ -194,22 +222,13 @@ class MeetingAdapter(
         return meetingEntity
     }
 
-    private fun MeetingJpaEntity.addMeetingDates(
-        incomingDates: Set<LocalDate>,
-    ) {
+    private fun MeetingJpaEntity.addMeetingDates(incomingDates: Set<LocalDate>) {
         incomingDates.forEach { date ->
-            this.dates.add(
-                MeetingDateJpaEntity.of(
-                    meeting = this,
-                    availableDate = date,
-                ),
-            )
+            this.dates.add(MeetingDateJpaEntity.of(meeting = this, availableDate = date))
         }
     }
 
-    private fun MeetingJpaEntity.addParticipants(
-        incomingParticipants: List<Participant>,
-    ) {
+    private fun MeetingJpaEntity.addParticipants(incomingParticipants: List<Participant>) {
         incomingParticipants.forEach { participant ->
             this.participants.add(participant.toEntity(this))
         }
@@ -224,9 +243,15 @@ class MeetingAdapter(
         )
         this.voteDates.forEach { voteDate ->
             participantEntity.voteDates.add(
-                ParticipantVoteDateJpaEntity.of(
+                ParticipantVoteDateJpaEntity.of(participant = participantEntity, voteDate = voteDate),
+            )
+        }
+        this.voteTimeSlots.forEach { (voteDate, timeSlots) ->
+            participantEntity.voteTimeSlots.add(
+                ParticipantVoteTimeSlotJpaEntity.of(
                     participant = participantEntity,
                     voteDate = voteDate,
+                    timeSlots = timeSlots,
                 ),
             )
         }
@@ -240,6 +265,8 @@ class MeetingAdapter(
         this.memo = meeting.memo
         this.status = meeting.status
         this.finalizedDate = meeting.finalizedDate
+        this.finalizedStartTime = meeting.finalizedStartTime
+        this.finalizedEndTime = meeting.finalizedEndTime
         this.updateMeetingDates(meeting.dates)
         this.updateParticipants(meeting.participants)
     }
@@ -249,12 +276,7 @@ class MeetingAdapter(
         val existingDates = this.dates.map { it.availableDate }.toSet()
         val datesToAdd = dates - existingDates
         datesToAdd.forEach { date ->
-            this.dates.add(
-                MeetingDateJpaEntity.of(
-                    meeting = this,
-                    availableDate = date,
-                ),
-            )
+            this.dates.add(MeetingDateJpaEntity.of(meeting = this, availableDate = date))
         }
     }
 
@@ -275,6 +297,7 @@ class MeetingAdapter(
             participantEntity.name = participant.name
             participantEntity.hasVoted = participant.hasVoted
             updateVoteDates(participantEntity, participant.voteDates)
+            updateVoteTimeSlots(participantEntity, participant.voteTimeSlots)
 
             if (participant.isNew() || participant.id.value !in remainingIds) {
                 this.participants.add(participantEntity)
@@ -325,11 +348,25 @@ class MeetingAdapter(
         val datesToAdd = voteDates - existingDates
         datesToAdd.forEach { voteDate ->
             participantEntity.voteDates.add(
-                ParticipantVoteDateJpaEntity.of(
-                    participant = participantEntity,
-                    voteDate = voteDate,
-                ),
+                ParticipantVoteDateJpaEntity.of(participant = participantEntity, voteDate = voteDate),
             )
+        }
+    }
+
+    private fun updateVoteTimeSlots(
+        participantEntity: ParticipantJpaEntity,
+        voteTimeSlots: Map<LocalDate, String>,
+    ) {
+        participantEntity.voteTimeSlots.removeIf { it.voteDate !in voteTimeSlots }
+        voteTimeSlots.forEach { (voteDate, timeSlots) ->
+            val existing = participantEntity.voteTimeSlots.find { it.voteDate == voteDate }
+            if (existing == null) {
+                participantEntity.voteTimeSlots.add(
+                    ParticipantVoteTimeSlotJpaEntity.of(participantEntity, voteDate, timeSlots),
+                )
+            } else {
+                existing.timeSlots = timeSlots
+            }
         }
     }
 
