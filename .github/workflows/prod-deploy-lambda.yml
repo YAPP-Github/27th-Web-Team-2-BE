@@ -91,6 +91,8 @@ jobs:
           file: ./app/api/Dockerfile.lambda
           push: true
           platforms: linux/amd64
+          provenance: false
+          sbom: false
           build-args: |
             PHASE=${{ env.PHASE }}
           tags: |
