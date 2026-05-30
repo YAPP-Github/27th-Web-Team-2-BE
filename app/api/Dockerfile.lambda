@@ -1,0 +1,45 @@
+# Spring Boot API를 Lambda Web Adapter 기반 컨테이너로 실행하는 이미지
+FROM public.ecr.aws/awsguru/aws-lambda-adapter:1.0.0 AS lambda-adapter
+
+FROM gradle:8.5-jdk17-alpine AS build
+
+WORKDIR /app
+
+COPY gradlew gradlew.bat ./
+COPY gradle gradle
+COPY build.gradle.kts settings.gradle.kts ./
+
+RUN chmod +x gradlew
+RUN ./gradlew --no-daemon
+
+COPY adapter adapter
+COPY app app
+COPY core core
+COPY domain domain
+COPY port port
+COPY support support
+
+RUN ./gradlew :app:api:bootJar --no-daemon
+
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+RUN addgroup -S spring && adduser -S spring -G spring
+
+COPY --from=lambda-adapter /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=build /app/app/api/build/libs/*.jar app.jar
+
+RUN mkdir -p /tmp/app && chown -R spring:spring /tmp/app /app /opt/extensions/lambda-adapter
+
+USER spring
+
+EXPOSE 8080
+
+ARG PHASE
+ENV AWS_LWA_PORT=8080
+ENV AWS_LWA_READINESS_CHECK_PATH=/ping
+ENV AWS_LWA_ASYNC_INIT=true
+ENV JAVA_OPTS="-Dspring.profiles.active=${PHASE:-sandbox}"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
