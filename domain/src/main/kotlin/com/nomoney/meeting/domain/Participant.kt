@@ -12,4 +12,5 @@ data class Participant(
     val voteDates: Set<LocalDate>,
     val hasVoted: Boolean,
     val updatedAt: LocalDateTime = LocalDateTime.now(),
+    val voteTimeSlots: Map<LocalDate, String> = emptyMap(),
 )

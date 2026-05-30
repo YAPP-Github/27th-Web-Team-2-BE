@@ -4,7 +4,18 @@
       "Bash(./gradlew test:*)",
       "Bash(./gradlew :core:test:*)",
       "Bash(./gradlew :app:api:test:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(./gradlew :domain:test --tests \"com.nomoney.meeting.domain.MeetingTimeRangeTest\")",
+      "Bash(apt-get update *)",
+      "Bash(apt-get install *)",
+      "Bash(./gradlew build *)",
+      "Bash(git *)",
+      "Read(//usr/lib/**)",
+      "Read(//home/hoyeon/.sdkman/candidates/**)",
+      "Bash(JAVA_HOME=/home/hoyeon/.jdks/temurin-21.0.10 ./gradlew :adapter:rdb:compileKotlin)",
+      "Bash(./gradlew :adapter:rdb:compileKotlin)"
     ]
   }
 }

@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(./gradlew *ktlintFormat:*)",
+      "Bash(./gradlew *build:*)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -12,11 +19,7 @@
       }
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(find:*)",
-      "Bash(./gradlew *ktlintFormat:*)",
-      "Bash(./gradlew *build:*)"
-    ]
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
   }
 }

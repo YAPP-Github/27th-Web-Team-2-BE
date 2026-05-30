@@ -3,6 +3,7 @@ package com.nomoney.api.meetvote.model
 import com.nomoney.meeting.domain.MeetingId
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Schema(description = "모임 확정 날짜 충돌 확인 요청")
 data class FinalizeMeetingConflictCheckRequest(
@@ -11,6 +12,12 @@ data class FinalizeMeetingConflictCheckRequest(
 
     @Schema(description = "확정할 날짜", example = "2026-02-20", required = true)
     val finalizedDate: LocalDate,
+
+    @Schema(description = "확정 시작 시간 (시간 투표 모임 필수)", example = "10:00")
+    val finalizedStartTime: LocalTime? = null,
+
+    @Schema(description = "확정 종료 시간 (시간 투표 모임 필수)", example = "12:00")
+    val finalizedEndTime: LocalTime? = null,
 )
 
 @Schema(description = "모임 확정 날짜 충돌 확인 응답")
