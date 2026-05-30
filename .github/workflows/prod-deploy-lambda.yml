@@ -56,6 +56,7 @@ jobs:
             api)
               echo "ECR_REPOSITORY=prod-app-lambda" >> $GITHUB_ENV
               echo "LAMBDA_FUNCTION=prod-app-lambda" >> $GITHUB_ENV
+              echo "LAMBDA_ALIAS=live" >> $GITHUB_ENV
               ;;
             *)
               echo "❌ Unknown deploy module: ${{ github.event.inputs.deploy_module }}"
@@ -109,11 +110,94 @@ jobs:
           IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
           if aws lambda get-function --function-name "$LAMBDA_FUNCTION" >/dev/null 2>&1; then
-            aws lambda update-function-code \
+            VERSION="$(aws lambda update-function-code \
               --function-name "$LAMBDA_FUNCTION" \
               --image-uri "$IMAGE_URI" \
-              --publish
-            echo "✅ Lambda function updated: $LAMBDA_FUNCTION"
+              --publish \
+              --query 'Version' \
+              --output text)"
+
+            aws lambda wait function-updated \
+              --function-name "$LAMBDA_FUNCTION"
+
+            if aws lambda get-alias --function-name "$LAMBDA_FUNCTION" --name "$LAMBDA_ALIAS" >/dev/null 2>&1; then
+              aws lambda update-alias \
+                --function-name "$LAMBDA_FUNCTION" \
+                --name "$LAMBDA_ALIAS" \
+                --function-version "$VERSION"
+            else
+              aws lambda create-alias \
+                --function-name "$LAMBDA_FUNCTION" \
+                --name "$LAMBDA_ALIAS" \
+                --function-version "$VERSION"
+            fi
+
+            if aws lambda get-provisioned-concurrency-config --function-name "$LAMBDA_FUNCTION" --qualifier "$LAMBDA_ALIAS" >/dev/null 2>&1; then
+              for attempt in $(seq 1 60); do
+                STATUS="$(aws lambda get-provisioned-concurrency-config \
+                  --function-name "$LAMBDA_FUNCTION" \
+                  --qualifier "$LAMBDA_ALIAS" \
+                  --query 'Status' \
+                  --output text)"
+
+                if [ "$STATUS" = "READY" ]; then
+                  break
+                fi
+
+                if [ "$STATUS" = "FAILED" ]; then
+                  aws lambda get-provisioned-concurrency-config \
+                    --function-name "$LAMBDA_FUNCTION" \
+                    --qualifier "$LAMBDA_ALIAS"
+                  exit 1
+                fi
+
+                if [ "$attempt" -eq 60 ]; then
+                  echo "Provisioned concurrency did not become READY within 10 minutes."
+                  exit 1
+                fi
+
+                sleep 10
+              done
+            fi
+
+            cat > warmup-payload.json <<'JSON'
+            {
+              "version": "2.0",
+              "routeKey": "GET /ping",
+              "rawPath": "/ping",
+              "rawQueryString": "",
+              "headers": {
+                "host": "lambda-api.moit.kr"
+              },
+              "requestContext": {
+                "http": {
+                  "method": "GET",
+                  "path": "/ping",
+                  "protocol": "HTTP/1.1",
+                  "sourceIp": "127.0.0.1",
+                  "userAgent": "github-actions-lambda-warmup"
+                },
+                "requestId": "github-actions-lambda-warmup",
+                "routeKey": "GET /ping",
+                "stage": "$default"
+              },
+              "isBase64Encoded": false
+            }
+          JSON
+
+            aws lambda invoke \
+              --function-name "$LAMBDA_FUNCTION" \
+              --qualifier "$LAMBDA_ALIAS" \
+              --cli-binary-format raw-in-base64-out \
+              --payload fileb://warmup-payload.json \
+              warmup-response.json
+
+            if ! jq -e '.statusCode == 200' warmup-response.json >/dev/null; then
+              cat warmup-response.json
+              exit 1
+            fi
+
+            echo "✅ Lambda function updated: $LAMBDA_FUNCTION:$LAMBDA_ALIAS -> version $VERSION"
           else
             echo "ℹ️ Lambda function does not exist yet. Image pushed only: $IMAGE_URI"
             echo "Run Terraform Apply with enable_lambda_api=true and lambda_image_tag=${IMAGE_TAG}."
